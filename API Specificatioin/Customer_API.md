@@ -1,111 +1,109 @@
-
 # Customer API Specification
 
-## 1. Overview
+## 1. Tổng quan
 
-API dùng để quản lý và cập nhật thông tin Customer.
+API quản lý thông tin khách hàng trong CAB System.
 
-## 2. API Information
+### Actor
+- Customer
+- Staff
 
-| Field | Value |
-|---|---|
-| API ID | CUS-01 |
-| API Name | Get Customer |
-| Method | GET |
-| Endpoint | `/api/customers/{customerId}` |
-| Actor | Customer, Staff |
-| Authentication | Required |
-| FR | FR02 |
-| UC | UC01 |
-| AC | AC01 |
-| TC | TC02 |
+### Mapping yêu cầu
+- FR02 – Cập nhật thông tin tài khoản
+- UC01 – Quản lý tài khoản
+- AC01 – Quản lý tài khoản thành công
+- TC02 – Kiểm tra cập nhật thông tin khách hàng
 
-## 3. Request
+---
 
-### Headers
+## 2. CUS-01 – Lấy thông tin khách hàng
 
-Authorization: Bearer <token>
+### Endpoint
 
-## 4. Response
+GET `/api/customers/{customerId}`
 
-### Success – 200 OK
+### Description
+
+Lấy thông tin của một khách hàng.
+
+### Authentication
+
+Bearer Token
+
+### Request Headers
+
+Authorization: Bearer <access_token>
+
+### Path Parameter
+
+- customerId: ID của khách hàng cần lấy thông tin.
+
+### Success Response – 200 OK
 
 {
-  "customerId": "CUS001",
-  "fullName": "Nguyen Van A",
-  "phone": "0901234567",
-  "email": "customer@example.com"
+  "customerId": "<customer_id>",
+  "fullName": "<full_name>",
+  "phone": "<phone>",
+  "email": "<email>"
 }
 
-### Failed – 404 Not Found
+### Error Response – 404 Not Found
 
 {
   "code": "CUSTOMER_NOT_FOUND",
-  "message": "Customer does not exist"
+  "message": "Customer not found"
 }
 
-## 5. API Information – CUS-02
+---
 
-| Field | Value |
-|---|---|
-| API ID | CUS-02 |
-| API Name | Update Customer |
-| Method | PUT |
-| Endpoint | `/api/customers/{customerId}` |
-| Actor | Customer, Staff |
-| Authentication | Required |
-| FR | FR02 |
-| UC | UC01 |
-| AC | AC01 |
-| TC | TC02 |
+## 3. CUS-02 – Cập nhật thông tin khách hàng
 
-## 6. Request
+### Endpoint
 
-### Headers
+PUT `/api/customers/{customerId}`
 
-Authorization: Bearer <token>
+### Description
+
+Cho phép khách hàng cập nhật thông tin tài khoản.
+
+### Authentication
+
+Bearer Token
+
+### Request Headers
+
+Authorization: Bearer <access_token>
 Content-Type: application/json
 
-### Body
+### Request Body
 
 {
-  "fullName": "Nguyen Van A",
-  "phone": "0901234567",
-  "email": "customer@example.com"
+  "fullName": "<full_name>",
+  "phone": "<phone>",
+  "email": "<email>"
 }
 
-## 7. Response
-
-### Success – 200 OK
+### Success Response – 200 OK
 
 {
-  "customerId": "CUS001",
-  "fullName": "Nguyen Van A",
-  "phone": "0901234567",
-  "email": "customer@example.com"
+  "customerId": "<customer_id>",
+  "fullName": "<full_name>",
+  "phone": "<phone>",
+  "email": "<email>"
 }
 
-### Failed – 400 Bad Request
+### Error Response – 400 Bad Request
 
 {
-  "code": "INVALID_DATA",
-  "message": "Customer information is invalid"
+  "code": "INVALID_CUSTOMER_DATA",
+  "message": "Invalid customer information"
 }
 
-## 8. Business Rules
+### Business Rules
 
-- BRL01: Người dùng phải xác thực trước khi sử dụng chức năng yêu cầu đăng nhập.
-- Customer chỉ được cập nhật thông tin tài khoản của chính mình.
-- Staff chỉ được cập nhật thông tin Customer khi có quyền phù hợp.
+- Chỉ khách hàng hợp lệ hoặc Staff có quyền mới được truy cập thông tin.
+- Thông tin cập nhật phải hợp lệ.
 
-## 9. Exceptions
+### Test Case
 
-- Customer không tồn tại.
-- Người dùng không có quyền truy cập.
-- Dữ liệu cập nhật không hợp lệ.
-
-## 10. Requirement Traceability
-
-| FR | UC | AC | TC |
-|---|---|---|---|
-| FR02 | UC01 | AC01 | TC02 |
+- TC02: Kiểm tra xem và cập nhật thông tin khách hàng.
