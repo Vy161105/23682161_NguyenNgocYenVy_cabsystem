@@ -1,117 +1,182 @@
 # Trip API Specification
 
-## 1. Overview
+## 1. Tổng quan
 
-API dùng để theo dõi và thực hiện chuyến đi.
+API quản lý quá trình thực hiện chuyến đi, theo dõi chuyến và tính cước.
 
-## 2. API Information – TRIP-01
+Fare API được gộp vào Trip API vì tiền cước được xác định dựa trên thông tin chuyến đi.
 
-| Field | Value |
-|---|---|
-| API ID | TRIP-01 |
-| API Name | Get Trip |
-| Method | GET |
-| Endpoint | `/api/trips/{tripId}` |
-| Actor | Customer, Driver, Staff |
-| Authentication | Required |
-| FR | FR10, FR11, FR12 |
-| UC | UC04, UC05 |
-| AC | AC06, AC07 |
-| TC | TC10, TC12 |
+### Actor
+- Customer
+- Driver
+- Staff
 
-## 3. Request
+### Mapping yêu cầu
+- FR10 – Cập nhật trạng thái chuyến
+- FR11 – Hoàn thành chuyến
+- FR12 – Theo dõi chuyến
+- FR13 – Tính cước
+- UC04 – Theo dõi chuyến
+- UC05 – Thực hiện chuyến
+- UC06 – Tính cước
+- AC06–AC08
+- TC10–TC13
 
-### Headers
+---
 
-Authorization: Bearer <token>
+## 2. TRIP-01 – Lấy thông tin chuyến
 
-## 4. API Information – TRIP-02
+### Endpoint
 
-| Field | Value |
-|---|---|
-| API ID | TRIP-02 |
-| API Name | Update Trip Status |
-| Method | PATCH |
-| Endpoint | `/api/trips/{tripId}/status` |
-| Actor | Driver |
-| Authentication | Required |
-| FR | FR10 |
-| UC | UC05 |
-| AC | AC07 |
-| TC | TC10 |
+GET `/api/trips/{tripId}`
 
-## 5. Request
+### Description
 
-### Headers
+Lấy thông tin và trạng thái hiện tại của chuyến.
 
-Authorization: Bearer <token>
-Content-Type: application/json
+### Authentication
 
-### Body
+Bearer Token
+
+### Success Response – 200 OK
 
 {
-  "status": "DRIVER_ARRIVING"
+  "tripId": "<trip_id>",
+  "bookingId": "<booking_id>",
+  "driverId": "<driver_id>",
+  "status": "<ASSIGNED|DRIVER_ARRIVING|IN_PROGRESS|COMPLETED>",
+  "fare": "<fare>"
 }
 
-Các trạng thái: DRIVER_ARRIVING, PICKED_UP, IN_PROGRESS.
+---
 
-## 6. API Information – TRIP-03
+## 3. TRIP-02 – Cập nhật trạng thái chuyến
 
-| Field | Value |
-|---|---|
-| API ID | TRIP-03 |
-| API Name | Complete Trip |
-| Method | POST |
-| Endpoint | `/api/trips/{tripId}/complete` |
-| Actor | Driver |
-| Authentication | Required |
-| FR | FR11 |
-| UC | UC05 |
-| AC | AC07 |
-| TC | TC11 |
+### Endpoint
 
-## 7. Request
+PATCH `/api/trips/{tripId}/status`
 
-### Headers
+### Description
 
-Authorization: Bearer <token>
+Tài xế cập nhật trạng thái thực hiện chuyến.
 
-## 8. API Information – TRIP-04
+### Authentication
 
-| Field | Value |
-|---|---|
-| API ID | TRIP-04 |
-| API Name | Track Trip |
-| Method | GET |
-| Endpoint | `/api/trips/{tripId}/tracking` |
-| Actor | Customer |
-| Authentication | Required |
-| FR | FR12 |
-| UC | UC04 |
-| AC | AC06 |
-| TC | TC12 |
+Bearer Token
 
-## 9. Request
+### Request Body
 
-### Headers
+{
+  "status": "<DRIVER_ARRIVING|IN_PROGRESS>"
+}
 
-Authorization: Bearer <token>
+### Success Response – 200 OK
 
-## 10. Business Rules
+{
+  "tripId": "<trip_id>",
+  "status": "<status>"
+}
 
-- BRL08: Chỉ Driver được phân công mới được thực hiện và cập nhật Trip.
-- BRL09: Trip phải hoàn thành trước khi tính cước và thanh toán.
-- Customer được theo dõi trạng thái Trip sau khi Driver được phân công.
+### Business Rules
 
-## 11. Exceptions
+- BRL08: Chỉ tài xế được phân công mới được thực hiện và cập nhật chuyến.
+- Trạng thái chuyến phải tuân theo trình tự nghiệp vụ.
 
-- Trip không tồn tại.
-- Driver không được phân công cho Trip.
-- Trạng thái Trip không hợp lệ.
-- Trip chưa đủ điều kiện hoàn thành.
+---
 
-## 12. Requirement Traceability
+## 4. TRIP-03 – Hoàn thành chuyến
 
-| FR | UC | AC | TC |
-|---|---|---|---|
-| FR10, FR11, FR12 | UC04, UC05 | AC06, AC07 | TC10, TC11, TC12 |
+### Endpoint
+
+POST `/api/trips/{tripId}/complete`
+
+### Description
+
+Tài xế xác nhận chuyến đã hoàn thành.
+
+### Authentication
+
+Bearer Token
+
+### Success Response – 200 OK
+
+{
+  "tripId": "<trip_id>",
+  "status": "COMPLETED"
+}
+
+### Business Rules
+
+- BRL09: Chuyến phải hoàn thành trước khi xác định thanh toán cuối cùng.
+- Sau khi hoàn thành, hệ thống có thể thực hiện tính cước và thanh toán.
+
+---
+
+## 5. TRIP-04 – Theo dõi chuyến
+
+### Endpoint
+
+GET `/api/trips/{tripId}/tracking`
+
+### Description
+
+Cho phép khách hàng theo dõi tài xế và trạng thái chuyến.
+
+### Authentication
+
+Bearer Token
+
+### Success Response – 200 OK
+
+{
+  "tripId": "<trip_id>",
+  "status": "<status>",
+  "driverId": "<driver_id>",
+  "driverLocation": {
+    "latitude": "<latitude>",
+    "longitude": "<longitude>"
+  },
+  "eta": "<estimated_time>"
+}
+
+### Business Rules
+
+- Khách hàng chỉ được theo dõi chuyến của mình.
+- Thông tin vị trí được lấy từ dữ liệu vị trí tài xế.
+
+---
+
+## 6. TRIP-05 – Tính cước chuyến
+
+### Endpoint
+
+POST `/api/trips/{tripId}/fare`
+
+### Description
+
+Hệ thống xác định số tiền cần thanh toán cho chuyến đi.
+
+### Authentication
+
+Internal API
+
+### Success Response – 200 OK
+
+{
+  "tripId": "<trip_id>",
+  "fare": "<calculated_fare>",
+  "currency": "VND"
+}
+
+### Business Rules
+
+- FR13: Hệ thống phải xác định tiền cước.
+- Công thức tính cước cụ thể chưa được chốt trong phạm vi yêu cầu hiện tại.
+- Không tự ý cố định mức giá mở cửa, giá/km, giá/phút hoặc phụ phí.
+
+### Test Case
+
+- TC10: Cập nhật trạng thái chuyến.
+- TC11: Hoàn thành chuyến.
+- TC12: Theo dõi chuyến.
+- TC13: Tính cước.
