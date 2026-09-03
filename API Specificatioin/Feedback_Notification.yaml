@@ -1,0 +1,131 @@
+# Feedback and Notification API Specification
+
+## 1. Tổng quan
+
+API xử lý hai nhóm chức năng:
+- Đánh giá/phản hồi chuyến đi.
+- Gửi các thông báo cơ bản trong quá trình đặt và thực hiện chuyến.
+
+Hai chức năng được đặt chung trong một API specification vì đều là các chức năng hỗ trợ cho quá trình booking, trip và payment.
+
+---
+
+# PART A – FEEDBACK API
+
+## 2. FEEDBACK-01 – Đánh giá chuyến đi
+
+### Endpoint
+
+POST `/api/trips/{tripId}/rating`
+
+### Description
+
+Cho phép khách hàng đánh giá và phản hồi về chuyến đi sau khi chuyến đã hoàn thành.
+
+### Actor
+
+Customer
+
+### Authentication
+
+Bearer Token
+
+### Request Body
+
+{
+  "score": "<score>",
+  "comment": "<comment>"
+}
+
+### Success Response – 201 Created
+
+{
+  "ratingId": "<rating_id>",
+  "tripId": "<trip_id>",
+  "score": "<score>",
+  "comment": "<comment>"
+}
+
+### Business Rules
+
+- BRL12: Chỉ được đánh giá sau khi chuyến hoàn thành.
+- Mỗi chuyến chỉ được đánh giá theo chính sách của hệ thống.
+
+### Error Response – 400 Bad Request
+
+{
+  "code": "TRIP_NOT_COMPLETED",
+  "message": "Rating is only allowed after trip completion"
+}
+
+### Mapping
+
+- FR17 – Đánh giá chuyến đi
+- UC08 – Lịch sử và đánh giá
+- AC09 – Khách hàng đánh giá sau chuyến
+- TC17 – Kiểm tra đánh giá
+
+---
+
+# PART B – NOTIFICATION API
+
+## 3. NOTI-01 – Gửi thông báo
+
+### Endpoint
+
+POST `/api/notifications`
+
+### Description
+
+Hệ thống tạo và gửi các thông báo cơ bản đến người dùng dựa trên các sự kiện nghiệp vụ.
+
+### Source
+
+Internal System
+
+### Authentication
+
+Internal API
+
+### Request Body
+
+{
+  "recipientId": "<recipient_id>",
+  "type": "<BOOKING_CREATED|DRIVER_ASSIGNED|DRIVER_ARRIVING|TRIP_STARTED|TRIP_COMPLETED|PAYMENT_SUCCESS|PAYMENT_FAILED|NO_DRIVER_AVAILABLE>",
+  "message": "<message>"
+}
+
+### Success Response – 201 Created
+
+{
+  "notificationId": "<notification_id>",
+  "status": "SENT"
+}
+
+### Notification Types
+
+- BOOKING_CREATED – Tạo booking thành công
+- DRIVER_ASSIGNED – Đã phân công tài xế
+- DRIVER_ARRIVING – Tài xế đang đến điểm đón
+- TRIP_STARTED – Chuyến đi bắt đầu
+- TRIP_COMPLETED – Chuyến đi hoàn thành
+- PAYMENT_SUCCESS – Thanh toán thành công
+- PAYMENT_FAILED – Thanh toán thất bại
+- NO_DRIVER_AVAILABLE – Không tìm được tài xế
+
+### Business Rules
+
+- BRL07: Nếu không tìm được tài xế phù hợp, hệ thống phải thông báo cho khách hàng.
+- Hệ thống phải hỗ trợ các thông báo cơ bản tương ứng với các sự kiện nghiệp vụ.
+- Lỗi gửi thông báo không được làm dừng quá trình booking hoặc trip.
+
+### Exceptions
+
+- EX11: Notification Provider không phản hồi.
+- EX12: Gửi thông báo thất bại.
+
+### Mapping
+
+- FR21 – Thông báo
+- AC11 – Người dùng nhận được thông báo phù hợp với sự kiện nghiệp vụ
+- TC21 – Kiểm tra thông báo
