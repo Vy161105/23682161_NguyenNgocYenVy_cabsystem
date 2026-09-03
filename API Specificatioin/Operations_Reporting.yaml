@@ -1,8 +1,8 @@
-# Staff and Report API Specification
+# Operations and Reporting API Specification
 
 ## 1. Tổng quan
 
-API phục vụ nhân viên vận hành trong việc:
+API phục vụ hoạt động vận hành và báo cáo của CAB System, bao gồm:
 - Quản lý Customer.
 - Quản lý Driver.
 - Quản lý Vehicle.
@@ -11,9 +11,11 @@ API phục vụ nhân viên vận hành trong việc:
 - Xem báo cáo vận hành cơ bản.
 
 ### Actor
+
 - Staff
 
 ### Mapping yêu cầu
+
 - FR18 – Quản lý khách hàng, tài xế, phương tiện, chuyến
 - FR19 – Giám sát chuyến đang diễn ra
 - FR20 – Báo cáo
@@ -24,17 +26,17 @@ API phục vụ nhân viên vận hành trong việc:
 
 ---
 
-# PART A – STAFF MANAGEMENT API
+# PART A – OPERATIONS MANAGEMENT API
 
-## 2. STAFF-01 – Quản lý khách hàng
+## 2. OPS-01 – Quản lý khách hàng
 
 ### Endpoint
 
-GET `/api/staff/customers`
+GET `/api/operations/customers`
 
 ### Description
 
-Staff xem danh sách khách hàng để phục vụ quản lý vận hành.
+Cho phép Staff xem danh sách khách hàng để phục vụ công tác quản lý vận hành.
 
 ### Authentication
 
@@ -55,20 +57,20 @@ Bearer Token
 
 ### Business Rules
 
-- Chỉ Staff có quyền mới được truy cập.
-- BRL13: Chỉ người dùng được phân quyền mới được quản lý/xem dữ liệu vận hành.
+- Chỉ Staff được phân quyền mới được truy cập.
+- BRL13: Chỉ người dùng được phân quyền mới được quản lý hoặc xem dữ liệu vận hành.
 
 ---
 
-## 3. STAFF-02 – Quản lý tài xế
+## 3. OPS-02 – Quản lý tài xế
 
 ### Endpoint
 
-GET `/api/staff/drivers`
+GET `/api/operations/drivers`
 
 ### Description
 
-Staff xem danh sách và thông tin tài xế.
+Cho phép Staff xem danh sách và thông tin tài xế phục vụ quản lý vận hành.
 
 ### Authentication
 
@@ -87,17 +89,21 @@ Bearer Token
   ]
 }
 
+### Business Rules
+
+- Chỉ Staff được phân quyền mới được truy cập.
+
 ---
 
-## 4. STAFF-03 – Quản lý phương tiện
+## 4. OPS-03 – Quản lý phương tiện
 
 ### Endpoint
 
-GET `/api/staff/vehicles`
+GET `/api/operations/vehicles`
 
 ### Description
 
-Staff xem danh sách phương tiện.
+Cho phép Staff xem danh sách và thông tin phương tiện.
 
 ### Authentication
 
@@ -116,17 +122,21 @@ Bearer Token
   ]
 }
 
+### Business Rules
+
+- Chỉ Staff được phân quyền mới được truy cập.
+
 ---
 
-## 5. STAFF-04 – Quản lý chuyến
+## 5. OPS-04 – Quản lý chuyến
 
 ### Endpoint
 
-GET `/api/staff/trips`
+GET `/api/operations/trips`
 
 ### Description
 
-Staff xem danh sách chuyến để quản lý vận hành.
+Cho phép Staff xem danh sách chuyến để phục vụ quản lý vận hành.
 
 ### Authentication
 
@@ -145,17 +155,22 @@ Bearer Token
   ]
 }
 
+### Business Rules
+
+- Chỉ Staff được phân quyền mới được truy cập.
+- Thông tin chuyến phải phản ánh trạng thái hiện tại của chuyến.
+
 ---
 
-## 6. STAFF-05 – Theo dõi chuyến đang diễn ra
+## 6. OPS-05 – Theo dõi chuyến đang diễn ra
 
 ### Endpoint
 
-GET `/api/staff/trips/ongoing`
+GET `/api/operations/trips/ongoing`
 
 ### Description
 
-Staff xem các chuyến đang thực hiện để theo dõi tình trạng vận hành.
+Cho phép Staff theo dõi các chuyến đang diễn ra để giám sát tình trạng vận hành.
 
 ### Authentication
 
@@ -179,12 +194,19 @@ Bearer Token
 
 ### Business Rules
 
-- Staff được phân quyền mới được truy cập.
+- Chỉ Staff được phân quyền mới được truy cập.
 - Dữ liệu phải phục vụ việc giám sát các chuyến đang diễn ra.
+
+### Mapping
+
+- FR19 – Giám sát chuyến đang diễn ra
+- UC09 – Quản lý vận hành
+- AC10 – Staff quản lý và giám sát
+- TC19 – Kiểm tra giám sát chuyến
 
 ---
 
-# PART B – REPORT API
+# PART B – REPORTING API
 
 ## 7. REPORT-01 – Báo cáo vận hành
 
@@ -194,7 +216,7 @@ GET `/api/reports/operations?from={from}&to={to}`
 
 ### Description
 
-Staff xem báo cáo vận hành trong một khoảng thời gian.
+Cho phép Staff xem các chỉ số báo cáo vận hành trong một khoảng thời gian.
 
 ### Authentication
 
@@ -233,11 +255,11 @@ Bearer Token
 ### Exceptions
 
 - EX09: Staff không có quyền truy cập.
-- Khoảng thời gian báo cáo không hợp lệ.
+- EX10: Khoảng thời gian báo cáo không hợp lệ.
 
 ### Mapping
 
 - FR20 – Báo cáo
 - UC10 – Báo cáo
 - AC10 – Quản lý và báo cáo vận hành
-- TC20 – Kiểm tra báo cáo.
+- TC20 – Kiểm tra báo cáo
