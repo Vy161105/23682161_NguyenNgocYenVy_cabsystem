@@ -1,96 +1,104 @@
 # Payment API Specification
 
-## 1. Overview
+## 1. Tổng quan
 
-API dùng để xử lý thanh toán chuyến đi bằng tiền mặt hoặc phương thức điện tử thông qua Payment Provider.
+API xử lý thanh toán cho chuyến đi.
 
-## 2. API Information – PAY-01
+Hệ thống hỗ trợ:
+- Thanh toán tiền mặt.
+- Thanh toán điện tử thông qua một Payment Provider.
 
-| Field | Value |
-|---|---|
-| API ID | PAY-01 |
-| API Name | Create Payment |
-| Method | POST |
-| Endpoint | `/api/payments` |
-| Actor | Customer |
-| Authentication | Required |
-| FR | FR14 |
-| UC | UC07 |
-| AC | AC08 |
-| TC | TC14 |
+CAB System không lưu trữ thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.
 
-## 3. Request
+### Actor
+- Customer
+- Payment Provider
 
-### Headers
+### Mapping yêu cầu
+- FR14 – Thanh toán
+- FR15 – Ghi nhận kết quả và xử lý lỗi thanh toán
+- UC07 – Thanh toán
+- AC08 – Kết quả thanh toán được ghi nhận
+- TC14–TC15
 
-Authorization: Bearer <token>
-Content-Type: application/json
+---
 
-### Body
+## 2. PAY-01 – Tạo yêu cầu thanh toán
 
-{
-  "tripId": "TRIP001",
-  "paymentMethod": "CASH"
-}
+### Endpoint
 
-Payment Method: CASH hoặc ELECTRONIC.
+POST `/api/payments`
 
-## 4. Response
+### Description
 
-### Success – 200 OK
+Tạo yêu cầu thanh toán cho một chuyến đã hoàn thành.
 
-{
-  "paymentId": "PAY001",
-  "tripId": "TRIP001",
-  "amount": 150000,
-  "paymentStatus": "PENDING"
-}
+### Authentication
 
-## 5. API Information – PAY-02
+Bearer Token
 
-| Field | Value |
-|---|---|
-| API ID | PAY-02 |
-| API Name | Payment Result |
-| Method | POST |
-| Endpoint | `/api/payments/{paymentId}/result` |
-| Actor | Payment Provider |
-| Authentication | Required |
-| FR | FR15 |
-| UC | UC07 |
-| AC | AC08 |
-| TC | TC15 |
-
-## 6. Request
-
-### Headers
-
-Authorization: Bearer <token>
-Content-Type: application/json
-
-### Body
+### Request Body
 
 {
-  "paymentStatus": "SUCCESS"
+  "tripId": "<trip_id>",
+  "method": "<CASH|ELECTRONIC>"
 }
 
-## 7. Business Rules
+### Success Response – 201 Created
 
-- BRL10: Customer được thanh toán bằng CASH hoặc ELECTRONIC.
-- BRL11: Thanh toán ELECTRONIC được thực hiện thông qua Payment Provider.
-- CAB System không lưu thông tin thẻ hoặc thông tin tài khoản thanh toán nhạy cảm.
-- Lỗi thanh toán không được làm dừng Booking hoặc Trip.
+{
+  "paymentId": "<payment_id>",
+  "tripId": "<trip_id>",
+  "method": "<CASH|ELECTRONIC>",
+  "status": "PENDING"
+}
 
-## 8. Exceptions
+### Business Rules
 
+- BRL09: Chuyến phải hoàn thành trước khi thanh toán.
+- BRL10: Chỉ sử dụng phương thức thanh toán được hệ thống hỗ trợ.
+- Nếu chọn ELECTRONIC, yêu cầu được chuyển đến Payment Provider.
+- CAB System không lưu thông tin nhạy cảm của thẻ/tài khoản.
+
+---
+
+## 3. PAY-02 – Ghi nhận kết quả thanh toán
+
+### Endpoint
+
+POST `/api/payments/{paymentId}/result`
+
+### Description
+
+Payment Provider gửi kết quả xử lý thanh toán về CAB System.
+
+### Authentication
+
+Provider authentication / secure integration
+
+### Request Body
+
+{
+  "status": "<SUCCESS|FAILED>",
+  "providerTransactionId": "<provider_transaction_id>"
+}
+
+### Success Response – 200 OK
+
+{
+  "paymentId": "<payment_id>",
+  "status": "<SUCCESS|FAILED>"
+}
+
+### Business Rules
+
+- BRL11: Thanh toán điện tử được thực hiện thông qua Payment Provider.
+- Kết quả giao dịch phải được ghi nhận.
 - EX07: Thanh toán điện tử thất bại.
-- EX08: Payment Provider timeout hoặc không phản hồi.
-- Payment không tồn tại.
-- Phương thức thanh toán không được hỗ trợ.
+- EX08: Payment Provider timeout/failure.
+- Lỗi thanh toán không được làm dừng toàn bộ chức năng đặt xe.
 
-## 9. Requirement Traceability
+### Test Case
 
-| FR | UC | AC | TC |
-|---|---|---|---|
-| FR14 | UC07 | AC08 | TC14 |
-| FR15 | UC07 | AC08 | TC15 |
+- TC14: Thanh toán tiền mặt/điện tử.
+- TC15: Thanh toán thất bại hoặc Payment Provider không phản hồi.
