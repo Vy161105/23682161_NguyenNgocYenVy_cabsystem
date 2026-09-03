@@ -1,127 +1,135 @@
-
 # Driver API Specification
 
-## 1. Overview
+## 1. Tổng quan
 
-API dùng để quản lý thông tin, trạng thái và vị trí của Driver.
+API quản lý thông tin, trạng thái và vị trí của tài xế.
 
-## 2. API Information – DRV-01
+### Actor
+- Customer
+- Driver
+- Staff
 
-| Field | Value |
-|---|---|
-| API ID | DRV-01 |
-| API Name | Get Driver |
-| Method | GET |
-| Endpoint | `/api/drivers/{driverId}` |
-| Actor | Customer, Driver, Staff |
-| Authentication | Required |
-| FR | FR02, FR12 |
-| UC | UC01, UC04 |
-| AC | AC06 |
-| TC | TC12 |
+### Mapping yêu cầu
+- FR05 – Tìm tài xế
+- FR06 – Lọc/ưu tiên tài xế phù hợp
+- FR10 – Cập nhật trạng thái chuyến
+- FR12 – Theo dõi tài xế/chuyến
+- FR18 – Quản lý tài xế
+- FR19 – Giám sát chuyến đang diễn ra
+- UC03 – Tìm và phân công tài xế
+- UC04 – Theo dõi chuyến
+- UC05 – Thực hiện chuyến
+- UC09 – Quản lý vận hành
 
-## 3. Request
+---
 
-### Headers
+## 2. DRV-01 – Lấy thông tin tài xế
 
-Authorization: Bearer <token>
+### Endpoint
 
-## 4. Response
+GET `/api/drivers/{driverId}`
 
-### Success – 200 OK
+### Description
+
+Lấy thông tin tài xế phục vụ việc theo dõi chuyến hoặc quản lý tài xế.
+
+### Authentication
+
+Bearer Token
+
+### Request Headers
+
+Authorization: Bearer <access_token>
+
+### Success Response – 200 OK
 
 {
-  "driverId": "DRV001",
-  "fullName": "Tran Van B",
-  "phone": "0901234568",
-  "status": "AVAILABLE",
-  "currentLocation": {
-    "latitude": 10.7769,
-    "longitude": 106.7009
-  }
+  "driverId": "<driver_id>",
+  "fullName": "<full_name>",
+  "phone": "<phone>",
+  "status": "<AVAILABLE|BUSY|OFFLINE>",
+  "vehicleId": "<vehicle_id>"
 }
 
-### Failed – 404 Not Found
+### Error Response – 404 Not Found
 
 {
   "code": "DRIVER_NOT_FOUND",
-  "message": "Driver does not exist"
+  "message": "Driver not found"
 }
 
-## 5. API Information – DRV-02
+---
 
-| Field | Value |
-|---|---|
-| API ID | DRV-02 |
-| API Name | Update Driver Status |
-| Method | PATCH |
-| Endpoint | `/api/drivers/{driverId}/status` |
-| Actor | Driver |
-| Authentication | Required |
-| FR | FR18, FR19 |
-| UC | UC05, UC09 |
-| AC | AC10 |
-| TC | TC18, TC19 |
+## 3. DRV-02 – Cập nhật trạng thái tài xế
 
-## 6. Request
+### Endpoint
 
-### Headers
+PATCH `/api/drivers/{driverId}/status`
 
-Authorization: Bearer <token>
-Content-Type: application/json
+### Description
 
-### Body
+Cho phép tài xế cập nhật trạng thái hoạt động.
+
+### Authentication
+
+Bearer Token
+
+### Request Body
 
 {
-  "status": "AVAILABLE"
+  "status": "<AVAILABLE|BUSY|OFFLINE>"
 }
 
-## 7. API Information – DRV-03
-
-| Field | Value |
-|---|---|
-| API ID | DRV-03 |
-| API Name | Update Driver Location |
-| Method | PATCH |
-| Endpoint | `/api/drivers/{driverId}/location` |
-| Actor | Driver |
-| Authentication | Required |
-| FR | FR05, FR06, FR12 |
-| UC | UC03, UC04 |
-| AC | AC03, AC06 |
-| TC | TC05, TC12 |
-
-## 8. Request
-
-### Headers
-
-Authorization: Bearer <token>
-Content-Type: application/json
-
-### Body
+### Success Response – 200 OK
 
 {
-  "latitude": 10.7769,
-  "longitude": 106.7009
+  "driverId": "<driver_id>",
+  "status": "<status>"
 }
 
-## 9. Business Rules
+### Business Rules
 
-- BRL03: Chỉ tìm kiếm Driver đang ở trạng thái AVAILABLE.
-- BRL04: Ưu tiên Driver phù hợp và gần điểm đón.
-- Driver phải đăng nhập để cập nhật trạng thái và vị trí.
+- Chỉ tài xế hợp lệ mới được cập nhật trạng thái của chính mình.
+- Driver ở trạng thái AVAILABLE mới được xem xét cho việc phân công chuyến.
 
-## 10. Exceptions
+---
 
-- Driver không tồn tại.
-- Driver không có quyền cập nhật dữ liệu.
-- Vị trí không hợp lệ.
-- Trạng thái Driver không hợp lệ.
+## 4. DRV-03 – Cập nhật vị trí tài xế
 
-## 11. Requirement Traceability
+### Endpoint
 
-| FR | UC | AC | TC |
-|---|---|---|---|
-| FR02, FR12 | UC01, UC04 | AC06 | TC12 |
-| FR18, FR19 | UC05, UC09 | AC10 | TC18, TC19 |
-| FR05, FR06, FR12 | UC03, UC04 | AC03, AC06 | TC05, TC12 |
+PATCH `/api/drivers/{driverId}/location`
+
+### Description
+
+Cập nhật vị trí hiện tại của tài xế để phục vụ tìm kiếm, phân công và theo dõi chuyến.
+
+### Authentication
+
+Bearer Token
+
+### Request Body
+
+{
+  "latitude": "<latitude>",
+  "longitude": "<longitude>"
+}
+
+### Success Response – 200 OK
+
+{
+  "driverId": "<driver_id>",
+  "latitude": "<latitude>",
+  "longitude": "<longitude>"
+}
+
+### Business Rules
+
+- Vị trí tài xế được sử dụng để xác định tài xế phù hợp với điểm đón.
+- Chỉ tài xế hợp lệ mới được cập nhật vị trí.
+
+### Test Case
+
+- TC05: Kiểm tra tìm tài xế dựa trên trạng thái và vị trí.
+- TC12: Kiểm tra theo dõi tài xế/chuyến.
+- TC18: Kiểm tra quản lý tài xế.
