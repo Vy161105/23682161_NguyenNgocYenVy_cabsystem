@@ -1,69 +1,70 @@
 # Authentication API Specification
 
-## 1. Overview
+## 1. Tổng quan
 
-API dùng để xác thực người dùng Customer, Driver và Staff trước khi sử dụng các chức năng yêu cầu đăng nhập.
+API phục vụ xác thực người dùng trong CAB System.
 
-## 2. API Information
+### Actor
+- Customer
+- Driver
+- Staff
 
-| Field | Value |
-|---|---|
-| API ID | AUTH-01 |
-| API Name | Login |
-| Method | POST |
-| Endpoint | `/api/auth/login` |
-| Actor | Customer, Driver, Staff |
-| Authentication | Not Required |
-| FR | FR01 |
-| UC | UC01 |
-| AC | AC01 |
-| TC | TC01 |
+### Authentication
+- Không yêu cầu authentication khi đăng nhập.
 
-## 3. Request
+### Mapping yêu cầu
+- FR01 – Đăng nhập/xác thực người dùng
+- UC01 – Quản lý tài khoản
+- AC01 – Người dùng đăng nhập thành công
+- TC01 – Kiểm tra xác thực
 
-### Headers
+---
+
+## 2. AUTH-01 – Đăng nhập
+
+### Endpoint
+
+POST `/api/auth/login`
+
+### Description
+
+Cho phép Customer, Driver hoặc Staff đăng nhập vào hệ thống bằng thông tin tài khoản.
+
+### Request Headers
 
 Content-Type: application/json
 
-### Body
+### Request Body
 
 {
-  "phone": "0901234567",
-  "password": "123456"
+  "phone": "<phone>",
+  "password": "<password>"
 }
 
-## 4. Response
-
-### Success – 200 OK
+### Success Response – 200 OK
 
 {
-  "token": "JWT_TOKEN",
-  "userId": "USR001",
-  "role": "CUSTOMER"
+  "token": "<access_token>",
+  "userId": "<user_id>",
+  "role": "<CUSTOMER|DRIVER|STAFF>"
 }
 
-### Failed – 401 Unauthorized
+### Error Response – 401 Unauthorized
 
 {
   "code": "INVALID_CREDENTIALS",
-  "message": "Phone or password is incorrect"
+  "message": "Invalid phone or password"
 }
 
-## 5. Business Rules
+### Business Rules
 
-- BRL01: Người dùng phải xác thực trước khi sử dụng chức năng yêu cầu đăng nhập.
-- Chỉ tài khoản hợp lệ mới được cấp token.
-- Role được sử dụng để xác định quyền truy cập.
+- BRL01: Người dùng phải xác thực trước khi sử dụng các chức năng được bảo vệ.
+- Thông tin đăng nhập không hợp lệ phải bị từ chối.
 
-## 6. Exceptions
+### Exceptions
 
-- EX01: Người dùng chưa đăng nhập hoặc token không hợp lệ.
-- Tài khoản không tồn tại.
-- Mật khẩu không chính xác.
-- Tài khoản bị khóa.
+- EX01: Người dùng chưa đăng nhập hoặc thông tin xác thực không hợp lệ.
 
-## 7. Requirement Traceability
+### Test Case
 
-| FR | UC | AC | TC |
-|---|---|---|---|
-| FR01 | UC01 | AC01 | TC01 |
+- TC01: Kiểm tra đăng nhập với thông tin hợp lệ và không hợp lệ.
