@@ -1,107 +1,115 @@
-
 # Vehicle API Specification
 
-## 1. Overview
+## 1. Tổng quan
 
-API dùng để quản lý thông tin phương tiện của Driver.
+API quản lý thông tin phương tiện trong CAB System.
 
-## 2. API Information – VEH-01
+### Actor
+- Driver
+- Staff
 
-| Field | Value |
-|---|---|
-| API ID | VEH-01 |
-| API Name | Create Vehicle |
-| Method | POST |
-| Endpoint | `/api/vehicles` |
-| Actor | Staff |
-| Authentication | Required |
-| FR | FR18 |
-| UC | UC09 |
-| AC | AC10 |
-| TC | TC18 |
+### Mapping yêu cầu
+- FR18 – Quản lý khách hàng, tài xế, phương tiện và chuyến
+- UC09 – Quản lý vận hành
+- AC10 – Staff quản lý dữ liệu vận hành
+- TC18 – Kiểm tra quản lý dữ liệu vận hành
 
-## 3. Request
+---
 
-### Headers
+## 2. VEH-01 – Thêm phương tiện
 
-Authorization: Bearer <token>
-Content-Type: application/json
+### Endpoint
 
-### Body
+POST `/api/vehicles`
 
-{
-  "driverId": "DRV001",
-  "vehicleType": "CAR",
-  "licensePlate": "51A-12345"
-}
+### Description
 
-## 4. API Information – VEH-02
+Staff thêm thông tin phương tiện vào hệ thống.
 
-| Field | Value |
-|---|---|
-| API ID | VEH-02 |
-| API Name | Update Vehicle |
-| Method | PUT |
-| Endpoint | `/api/vehicles/{vehicleId}` |
-| Actor | Staff |
-| Authentication | Required |
-| FR | FR18 |
-| UC | UC09 |
-| AC | AC10 |
-| TC | TC18 |
+### Authentication
 
-## 5. Request
+Bearer Token
 
-### Headers
-
-Authorization: Bearer <token>
-Content-Type: application/json
-
-### Body
+### Request Body
 
 {
-  "driverId": "DRV001",
-  "vehicleType": "CAR",
-  "licensePlate": "51A-12345",
-  "status": "ACTIVE"
+  "vehicleType": "<vehicle_type>",
+  "licensePlate": "<license_plate>",
+  "driverId": "<driver_id>"
 }
 
-## 6. API Information – VEH-03
+### Success Response – 201 Created
 
-| Field | Value |
-|---|---|
-| API ID | VEH-03 |
-| API Name | Get Vehicle |
-| Method | GET |
-| Endpoint | `/api/vehicles/{vehicleId}` |
-| Actor | Staff, Driver |
-| Authentication | Required |
-| FR | FR18 |
-| UC | UC09 |
-| AC | AC10 |
-| TC | TC18 |
+{
+  "vehicleId": "<vehicle_id>",
+  "vehicleType": "<vehicle_type>",
+  "licensePlate": "<license_plate>",
+  "driverId": "<driver_id>"
+}
 
-## 7. Request
+---
 
-### Headers
+## 3. VEH-02 – Cập nhật phương tiện
 
-Authorization: Bearer <token>
+### Endpoint
 
-## 8. Business Rules
+PUT `/api/vehicles/{vehicleId}`
 
-- BRL13: Chỉ người dùng được phân quyền mới được quản lý dữ liệu Vehicle.
-- Vehicle phải được gắn với Driver hợp lệ.
-- License plate không được trùng.
+### Description
 
-## 9. Exceptions
+Staff cập nhật thông tin phương tiện.
 
-- Vehicle không tồn tại.
-- Driver không tồn tại.
-- Người dùng không có quyền.
-- Thông tin Vehicle không hợp lệ.
+### Authentication
 
-## 10. Requirement Traceability
+Bearer Token
 
-| FR | UC | AC | TC |
-|---|---|---|---|
-| FR18 | UC09 | AC10 | TC18 |
+### Request Body
+
+{
+  "vehicleType": "<vehicle_type>",
+  "licensePlate": "<license_plate>",
+  "driverId": "<driver_id>"
+}
+
+### Success Response – 200 OK
+
+{
+  "vehicleId": "<vehicle_id>",
+  "vehicleType": "<vehicle_type>",
+  "licensePlate": "<license_plate>",
+  "driverId": "<driver_id>"
+}
+
+---
+
+## 4. VEH-03 – Lấy thông tin phương tiện
+
+### Endpoint
+
+GET `/api/vehicles/{vehicleId}`
+
+### Description
+
+Lấy thông tin phương tiện.
+
+### Authentication
+
+Bearer Token
+
+### Success Response – 200 OK
+
+{
+  "vehicleId": "<vehicle_id>",
+  "vehicleType": "<vehicle_type>",
+  "licensePlate": "<license_plate>",
+  "driverId": "<driver_id>"
+}
+
+### Business Rules
+
+- Chỉ Staff có quyền mới được quản lý phương tiện.
+- Thông tin phương tiện phải hợp lệ.
+
+### Test Case
+
+- TC18: Kiểm tra quản lý phương tiện.
