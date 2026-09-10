@@ -1,0 +1,36 @@
+# Operations and Reporting API Test Context
+
+## CTX-OPS-01 – Staff xem danh sách Customer
+- **Precondition:** Staff đã đăng nhập và có quyền.
+- **Input:** Request lấy danh sách Customer.
+- **Expected Output:** HTTP 200; trả về danh sách Customer.
+
+## CTX-OPS-02 – Staff xem danh sách Driver
+- **Precondition:** Staff đã đăng nhập và có quyền.
+- **Input:** Request lấy danh sách Driver.
+- **Expected Output:** HTTP 200; trả về danh sách Driver.
+
+## CTX-OPS-03 – Staff xem danh sách Vehicle
+- **Precondition:** Staff đã đăng nhập và có quyền.
+- **Input:** Request lấy danh sách Vehicle.
+- **Expected Output:** HTTP 200; trả về danh sách Vehicle.
+
+## CTX-OPS-04 – Staff xem danh sách Trip
+- **Precondition:** Staff đã đăng nhập và có quyền.
+- **Input:** Request lấy danh sách Trip.
+- **Expected Output:** HTTP 200; trả về danh sách Trip.
+
+## CTX-OPS-05 – Staff theo dõi Trip đang hoạt động
+- **Precondition:** Staff có quyền vận hành.
+- **Input:** Request lấy các Trip đang hoạt động.
+- **Expected Output:** HTTP 200; trả về danh sách Trip đang thực hiện.
+
+## CTX-OPS-06 – Staff xem báo cáo
+- **Precondition:** Staff có quyền xem báo cáo.
+- **Input:** Khoảng thời gian báo cáo hợp lệ.
+- **Expected Output:** HTTP 200; trả về số chuyến, doanh thu, tỷ lệ hoàn thành/hủy và hiệu quả Driver.
+
+## CTX-OPS-07 – User không có quyền truy cập Staff API
+- **Precondition:** User không có quyền Staff.
+- **Input:** Request đến Staff API.
+- **Expected Output:** HTTP 403 Forbidden.
