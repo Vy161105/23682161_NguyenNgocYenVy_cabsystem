@@ -1,0 +1,31 @@
+# Driver API Test Context
+
+## CTX-DRIVER-01 – Driver chuyển sang trạng thái Available
+- **Precondition:** Driver đã đăng nhập.
+- **Input:** Status = Available.
+- **Expected Output:** HTTP 200; trạng thái Driver được cập nhật.
+
+## CTX-DRIVER-02 – Driver cập nhật vị trí
+- **Precondition:** Driver đã đăng nhập.
+- **Input:** Current Location hợp lệ.
+- **Expected Output:** HTTP 200; vị trí Driver được cập nhật.
+
+## CTX-DRIVER-03 – Driver chấp nhận chuyến
+- **Precondition:** Driver được hệ thống gửi yêu cầu chuyến.
+- **Input:** Booking/Trip ID hợp lệ, Action = Accept.
+- **Expected Output:** HTTP 200; Driver được phân công cho chuyến.
+
+## CTX-DRIVER-04 – Driver từ chối chuyến
+- **Precondition:** Driver được gửi yêu cầu chuyến.
+- **Input:** Booking/Trip ID hợp lệ, Action = Reject.
+- **Expected Output:** HTTP 200; hệ thống ghi nhận từ chối và tìm Driver tiếp theo.
+
+## CTX-DRIVER-05 – Driver cập nhật trạng thái không hợp lệ
+- **Precondition:** Driver không ở trạng thái phù hợp.
+- **Input:** Trạng thái không đúng quy trình.
+- **Expected Output:** HTTP 400 Bad Request.
+
+## CTX-DRIVER-06 – Driver cập nhật chuyến không được phân công
+- **Precondition:** Driver không phải Driver được phân công.
+- **Input:** Trip ID của Driver khác.
+- **Expected Output:** HTTP 403 Forbidden.
