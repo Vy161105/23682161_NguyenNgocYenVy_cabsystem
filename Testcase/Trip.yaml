@@ -1,0 +1,31 @@
+# Trip API Test Context
+
+## CTX-TRIP-01 – Driver cập nhật đã đến điểm đón
+- **Precondition:** Driver đã được phân công.
+- **Input:** Trip ID, Status = Arrived.
+- **Expected Output:** HTTP 200; Trip Status = Arrived.
+
+## CTX-TRIP-02 – Driver cập nhật đã đón khách
+- **Precondition:** Trip đang ở trạng thái Arrived.
+- **Input:** Trip ID, Status = Picked Up.
+- **Expected Output:** HTTP 200; Trip Status = Picked Up.
+
+## CTX-TRIP-03 – Driver bắt đầu chuyến
+- **Precondition:** Driver đã đón Customer.
+- **Input:** Trip ID, Status = In Progress.
+- **Expected Output:** HTTP 200; Trip Status = In Progress.
+
+## CTX-TRIP-04 – Driver hoàn thành chuyến
+- **Precondition:** Trip đang thực hiện.
+- **Input:** Trip ID, Status = Completed.
+- **Expected Output:** HTTP 200; Trip Status = Completed.
+
+## CTX-TRIP-05 – Cập nhật trạng thái sai thứ tự
+- **Precondition:** Trip chưa đạt trạng thái cần thiết.
+- **Input:** Trạng thái không phù hợp với trạng thái hiện tại.
+- **Expected Output:** HTTP 400 Bad Request.
+
+## CTX-TRIP-06 – Customer theo dõi Trip
+- **Precondition:** Customer có Trip đang hoạt động.
+- **Input:** Trip ID hợp lệ.
+- **Expected Output:** HTTP 200; trả về Driver, Trip Status và thông tin ETA.
