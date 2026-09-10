@@ -1,0 +1,36 @@
+# Feedback and Notification API Test Context
+
+## CTX-FEEDBACK-01 – Customer đánh giá Trip đã hoàn thành
+- **Precondition:** Trip đã Completed.
+- **Input:** Trip ID, Score và Comment hợp lệ.
+- **Expected Output:** HTTP 201 Created; Rating được ghi nhận.
+
+## CTX-FEEDBACK-02 – Customer đánh giá Trip chưa hoàn thành
+- **Precondition:** Trip chưa Completed.
+- **Input:** Trip ID, Score và Comment.
+- **Expected Output:** HTTP 400; không cho phép đánh giá.
+
+## CTX-FEEDBACK-03 – Customer đánh giá lại Trip
+- **Precondition:** Trip đã có Rating.
+- **Input:** Gửi thêm Rating cho cùng Trip.
+- **Expected Output:** HTTP 400; không cho phép đánh giá trùng.
+
+## CTX-NOTIFICATION-01 – Thông báo khi Driver được phân công
+- **Precondition:** Booking được phân công Driver.
+- **Input:** Sự kiện Driver Assigned.
+- **Expected Output:** Customer nhận được thông báo.
+
+## CTX-NOTIFICATION-02 – Thông báo khi không có Driver
+- **Precondition:** Không tìm được Driver phù hợp.
+- **Input:** Sự kiện No Driver Available.
+- **Expected Output:** Customer nhận được thông báo.
+
+## CTX-NOTIFICATION-03 – Thông báo trạng thái Trip
+- **Precondition:** Trip thay đổi trạng thái.
+- **Input:** Trip Status Changed.
+- **Expected Output:** Thông báo được gửi đến Customer.
+
+## CTX-NOTIFICATION-04 – Thông báo kết quả Payment
+- **Precondition:** Payment đã được xử lý.
+- **Input:** Payment Success hoặc Payment Failed.
+- **Expected Output:** Customer nhận được kết quả thanh toán.
