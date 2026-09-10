@@ -1,0 +1,31 @@
+# Authentication API Test Context
+
+## CTX-AUTH-01 – Đăng nhập thành công
+- **Precondition:** Người dùng có tài khoản hợp lệ.
+- **Input:** Thông tin đăng nhập hợp lệ.
+- **Expected Output:** HTTP 200; đăng nhập thành công và trả về access token.
+
+## CTX-AUTH-02 – Đăng nhập sai mật khẩu
+- **Precondition:** Tài khoản tồn tại.
+- **Input:** Username/Phone đúng, Password sai.
+- **Expected Output:** HTTP 401 Unauthorized; đăng nhập thất bại.
+
+## CTX-AUTH-03 – Đăng nhập với tài khoản không tồn tại
+- **Precondition:** Không có tài khoản tương ứng.
+- **Input:** Username/Phone không tồn tại.
+- **Expected Output:** HTTP 401 Unauthorized.
+
+## CTX-AUTH-04 – Đăng nhập thiếu thông tin
+- **Precondition:** Không yêu cầu.
+- **Input:** Thiếu Username/Phone hoặc Password.
+- **Expected Output:** HTTP 400 Bad Request.
+
+## CTX-AUTH-05 – Cập nhật thông tin tài khoản thành công
+- **Precondition:** Người dùng đã đăng nhập.
+- **Input:** Thông tin cá nhân hợp lệ.
+- **Expected Output:** HTTP 200; thông tin được cập nhật.
+
+## CTX-AUTH-06 – Cập nhật thông tin không hợp lệ
+- **Precondition:** Người dùng đã đăng nhập.
+- **Input:** Thông tin không đúng định dạng.
+- **Expected Output:** HTTP 400 Bad Request.
