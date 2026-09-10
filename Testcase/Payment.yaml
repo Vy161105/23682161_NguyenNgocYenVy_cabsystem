@@ -1,0 +1,26 @@
+# Payment API Test Context
+
+## CTX-PAY-01 – Thanh toán tiền mặt
+- **Precondition:** Trip đã Completed.
+- **Input:** Trip ID, Payment Method = Cash.
+- **Expected Output:** HTTP 200/201; Payment Status = Success.
+
+## CTX-PAY-02 – Thanh toán điện tử thành công
+- **Precondition:** Trip đã Completed.
+- **Input:** Trip ID, Payment Method = Electronic.
+- **Expected Output:** Payment Provider xác nhận thành công; Payment Status = Success.
+
+## CTX-PAY-03 – Thanh toán điện tử thất bại
+- **Precondition:** Trip đã Completed.
+- **Input:** Yêu cầu thanh toán điện tử.
+- **Expected Output:** Payment Status = Failed; trả về thông báo thanh toán thất bại.
+
+## CTX-PAY-04 – Thanh toán khi Trip chưa hoàn thành
+- **Precondition:** Trip chưa Completed.
+- **Input:** Yêu cầu thanh toán.
+- **Expected Output:** HTTP 400; không cho phép thanh toán.
+
+## CTX-PAY-05 – Tính cước sau khi Trip hoàn thành
+- **Precondition:** Trip có Status = Completed.
+- **Input:** Trip ID.
+- **Expected Output:** HTTP 200; trả về Fare Amount.
