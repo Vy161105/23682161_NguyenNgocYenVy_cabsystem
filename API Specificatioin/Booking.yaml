@@ -1,281 +1,548 @@
-# Booking API Specification
-
-## 1. Tổng quan
-
-API quản lý đặt xe và tìm kiếm/phân công tài xế.
-
-Các chức năng tìm và phân công tài xế được gộp vào Booking API vì quá trình phân công được thực hiện trực tiếp trên một booking.
-
-### Actor
-- Customer
-- Driver
-- Staff
-
-### Mapping yêu cầu
-- FR03 – Nhập điểm đón, điểm đến và loại xe
-- FR04 – Ghi nhận booking
-- FR05 – Tự động tìm tài xế
-- FR06 – Lọc/ưu tiên tài xế phù hợp
-- FR07 – Gửi yêu cầu và ghi nhận phản hồi
-- FR08 – Xử lý tài xế từ chối/không phản hồi
-- FR09 – Tìm tài xế khác/thông báo không có tài xế
-- UC02 – Đặt xe
-- UC03 – Tìm và phân công tài xế
-- AC02–AC05
-- TC03–TC09
-
----
-
-## 2. BOOK-01 – Tạo booking
-
-### Endpoint
-
-POST `/api/bookings`
-
-### Description
-
-Khách hàng tạo yêu cầu đặt xe.
-
-### Authentication
-
-Bearer Token
-
-### Request Body
-
-{
-  "pickupLocation": {
-    "latitude": "<latitude>",
-    "longitude": "<longitude>"
-  },
-  "dropoffLocation": {
-    "latitude": "<latitude>",
-    "longitude": "<longitude>"
-  },
-  "vehicleType": "<vehicle_type>"
-}
-
-### Success Response – 201 Created
-
-{
-  "bookingId": "<booking_id>",
-  "status": "PENDING"
-}
-
-### Error Response – 400 Bad Request
-
-{
-  "code": "INVALID_BOOKING",
-  "message": "Pickup, dropoff and vehicle type are required"
-}
-
-### Business Rules
-
-- BRL02: Booking phải có điểm đón, điểm đến và loại xe.
-- Không cho phép tạo booking nếu dữ liệu bắt buộc không đầy đủ.
-
----
-
-## 3. BOOK-02 – Lấy thông tin booking
-
-### Endpoint
-
-GET `/api/bookings/{bookingId}`
-
-### Description
-
-Lấy thông tin và trạng thái của booking.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "bookingId": "<booking_id>",
-  "customerId": "<customer_id>",
-  "driverId": "<driver_id>",
-  "pickupLocation": {
-    "latitude": "<latitude>",
-    "longitude": "<longitude>"
-  },
-  "dropoffLocation": {
-    "latitude": "<latitude>",
-    "longitude": "<longitude>"
-  },
-  "vehicleType": "<vehicle_type>",
-  "status": "<PENDING|ASSIGNED|IN_PROGRESS|COMPLETED>"
-}
-
----
-
-## 4. BOOK-03 – Tìm tài xế
-
-### Endpoint
-
-POST `/api/bookings/{bookingId}/driver-search`
-
-### Description
-
-Hệ thống tự động tìm tài xế phù hợp cho booking.
-
-### Authentication
-
-Internal API
-
-### Success Response – 200 OK
-
-{
-  "bookingId": "<booking_id>",
-  "status": "DRIVER_SEARCHING",
-  "driverId": "<driver_id>"
-}
-
-### Business Rules
-
-- BRL03: Chỉ tìm các tài xế đang AVAILABLE.
-- BRL04: Ưu tiên tài xế phù hợp và gần điểm đón.
-- Khi tìm được tài xế, hệ thống gửi yêu cầu nhận chuyến.
-
----
-
-## 5. BOOK-04 – Gửi yêu cầu nhận chuyến
-
-### Endpoint
-
-POST `/api/driver-requests`
-
-### Description
-
-Gửi yêu cầu chuyến đến tài xế được lựa chọn.
-
-### Request Body
-
-{
-  "bookingId": "<booking_id>",
-  "driverId": "<driver_id>"
-}
-
-### Success Response – 201 Created
-
-{
-  "requestId": "<request_id>",
-  "bookingId": "<booking_id>",
-  "driverId": "<driver_id>",
-  "status": "PENDING"
-}
-
----
-
-## 6. BOOK-05 – Tài xế chấp nhận chuyến
-
-### Endpoint
-
-POST `/api/driver-requests/{requestId}/accept`
-
-### Description
-
-Tài xế chấp nhận yêu cầu nhận chuyến.
-
-### Success Response – 200 OK
-
-{
-  "requestId": "<request_id>",
-  "status": "ACCEPTED",
-  "bookingStatus": "ASSIGNED"
-}
-
-### Business Rules
-
-- Khi tài xế chấp nhận, booking được chuyển sang trạng thái ASSIGNED.
-
----
-
-## 7. BOOK-06 – Tài xế từ chối chuyến
-
-### Endpoint
-
-POST `/api/driver-requests/{requestId}/reject`
-
-### Description
-
-Ghi nhận việc tài xế từ chối yêu cầu.
-
-### Success Response – 200 OK
-
-{
-  "requestId": "<request_id>",
-  "status": "REJECTED"
-}
-
-### Business Rules
-
-- BRL05: Khi tài xế từ chối, hệ thống phải tìm tài xế khác.
-- BRL06: Khách hàng không cần tạo lại booking.
-
----
-
-## 8. BOOK-07 – Xử lý tài xế không phản hồi
-
-### Endpoint
-
-POST `/api/driver-requests/{requestId}/timeout`
-
-### Description
-
-Ghi nhận trường hợp tài xế không phản hồi trong thời gian quy định.
-
-### Success Response – 200 OK
-
-{
-  "requestId": "<request_id>",
-  "status": "TIMEOUT"
-}
-
-### Business Rules
-
-- EX05: Driver timeout.
-- Khi timeout, hệ thống tiếp tục tìm tài xế khác.
-
----
-
-## 9. BOOK-08 – Tìm tài xế tiếp theo
-
-### Endpoint
-
-POST `/api/bookings/{bookingId}/driver-search/next`
-
-### Description
-
-Tiếp tục tìm tài xế khác khi tài xế trước đó từ chối hoặc không phản hồi.
-
-### Success Response – 200 OK
-
-{
-  "bookingId": "<booking_id>",
-  "status": "DRIVER_SEARCHING",
-  "driverId": "<driver_id>"
-}
-
-### No Driver Response
-
-{
-  "bookingId": "<booking_id>",
-  "status": "NO_DRIVER_AVAILABLE"
-}
-
-### Business Rules
-
-- BRL05: Tài xế từ chối/timeout → tìm tài xế khác.
-- BRL07: Nếu không còn tài xế phù hợp, thông báo cho khách hàng.
-- EX03: Không có tài xế khả dụng.
-- EX06: Không có tài xế phù hợp.
-
-### Test Case
-
-- TC03–TC04: Tạo và kiểm tra booking.
-- TC05: Tìm tài xế.
-- TC06: Lọc/ưu tiên tài xế.
-- TC07: Tài xế chấp nhận.
-- TC08: Tài xế từ chối.
-- TC09: Tài xế timeout/không có tài xế.
+openapi: 3.0.3
+info:
+  title: Booking API Specification - CAB System
+  description: |
+    API quản lý đặt xe và tìm kiếm/phân công tài xế trong CAB System.
+    Các chức năng tìm và phân công tài xế được gộp vào Booking API vì quá trình phân công được thực hiện trực tiếp trên một booking.
+  version: 1.0.0
+
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+  - url: https://staging-api.cabsystem.com
+    description: Staging Server
+
+tags:
+  - name: Bookings
+    description: Các API phục vụ quản lý đơn đặt xe (Khách hàng & Hệ thống)
+  - name: Driver Search & Assignment
+    description: Các API xử lý tìm kiếm, chuyển tiếp và phân công tài xế
+  - name: Driver Requests
+    description: Các API xử lý tương tác phản hồi của tài xế (Chấp nhận, Từ chối, Timeout)
+
+paths:
+  /api/bookings:
+    post:
+      tags:
+        - Bookings
+      summary: BOOK-01 – Tạo booking
+      description: |
+        Khách hàng tạo yêu cầu đặt xe mới.
+        
+        **Mapping yêu cầu:**
+        - FR03 – Nhập điểm đón, điểm đến và loại xe
+        - FR04 – Ghi nhận booking
+        - UC02 – Đặt xe
+        - AC02 – Tạo booking thành công
+        - TC03 – Kiểm tra tạo booking hợp lệ
+        - TC04 – Kiểm tra tạo booking thiếu thông tin
+        
+        **Business Rules:**
+        - BRL02: Booking phải có điểm đón, điểm đến và loại xe.
+        - Không cho phép tạo booking nếu dữ liệu bắt buộc không đầy đủ.
+      operationId: createBooking
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Đặt xe thành công, booking được khởi tạo ở trạng thái PENDING.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                properties:
+                  bookingId:
+                    type: string
+                    example: "book_987654321"
+                  status:
+                    type: string
+                    example: "PENDING"
+        '400':
+          description: Dữ liệu không hợp lệ hoặc thiếu trường bắt buộc (INVALID_BOOKING).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INVALID_BOOKING"
+                message: "Pickup, dropoff and vehicle type are required"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/bookings/{bookingId}:
+    get:
+      tags:
+        - Bookings
+      summary: BOOK-02 – Lấy thông tin booking
+      description: Lấy chi tiết thông tin và trạng thái hiện tại của booking.
+      operationId: getBookingById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: ID duy nhất của booking
+          schema:
+            type: string
+          example: "book_987654321"
+      responses:
+        '200':
+          description: Lấy thông tin booking thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy booking với ID tương ứng.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "BOOKING_NOT_FOUND"
+                message: "Booking not found"
+
+  /api/bookings/{bookingId}/driver-search:
+    post:
+      tags:
+        - Driver Search & Assignment
+      summary: BOOK-03 – Tìm tài xế
+      description: |
+        Hệ thống tự động tìm tài xế phù hợp cho booking.
+        
+        **Mapping yêu cầu:**
+        - FR05 – Tự động tìm tài xế
+        - FR06 – Lọc/ưu tiên tài xế phù hợp
+        - UC03 – Tìm và phân công tài xế
+        - TC05 – Kiểm tra tự động tìm tài xế
+        - TC06 – Kiểm tra lọc và ưu tiên tài xế
+        
+        **Business Rules:**
+        - BRL03: Chỉ tìm các tài xế đang AVAILABLE.
+        - BRL04: Ưu tiên tài xế phù hợp và gần điểm đón.
+        - Khi tìm được tài xế, hệ thống gửi yêu cầu nhận chuyến.
+      operationId: searchDriverForBooking
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "book_987654321"
+      responses:
+        '200':
+          description: Đã tìm thấy tài xế phù hợp và khởi tạo tiến trình phân công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - bookingId
+                  - status
+                  - driverId
+                properties:
+                  bookingId:
+                    type: string
+                    example: "book_987654321"
+                  status:
+                    type: string
+                    example: "DRIVER_SEARCHING"
+                  driverId:
+                    type: string
+                    example: "drv_45678"
+
+  /api/driver-requests:
+    post:
+      tags:
+        - Driver Search & Assignment
+      summary: BOOK-04 – Gửi yêu cầu nhận chuyến
+      description: |
+        Gửi yêu cầu chuyến xe đến tài xế được lựa chọn từ thuật toán.
+        
+        **Mapping yêu cầu:**
+        - FR07 – Gửi yêu cầu và ghi nhận phản hồi
+      operationId: createDriverRequest
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bookingId
+                - driverId
+              properties:
+                bookingId:
+                  type: string
+                  example: "book_987654321"
+                driverId:
+                  type: string
+                  example: "drv_45678"
+      responses:
+        '201':
+          description: Yêu cầu nhận chuyến đã được khởi tạo thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - requestId
+                  - bookingId
+                  - driverId
+                  - status
+                properties:
+                  requestId:
+                    type: string
+                    example: "req_00112233"
+                  bookingId:
+                    type: string
+                    example: "book_987654321"
+                  driverId:
+                    type: string
+                    example: "drv_45678"
+                  status:
+                    type: string
+                    example: "PENDING"
+
+  /api/driver-requests/{requestId}/accept:
+    post:
+      tags:
+        - Driver Requests
+      summary: BOOK-05 – Tài xế chấp nhận chuyến
+      description: |
+        Tài xế xác nhận chấp nhận yêu cầu chuyến xe.
+        
+        **Mapping yêu cầu:**
+        - AC03 – Phân công tài xế thành công
+        - TC07 – Tài xế chấp nhận chuyến
+        
+        **Business Rules:**
+        - Khi tài xế chấp nhận, booking được chuyển sang trạng thái ASSIGNED.
+      operationId: acceptDriverRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "req_00112233"
+      responses:
+        '200':
+          description: Chấp nhận thành công, trạng thái booking chuyển thành ASSIGNED.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - requestId
+                  - status
+                  - bookingStatus
+                properties:
+                  requestId:
+                    type: string
+                    example: "req_00112233"
+                  status:
+                    type: string
+                    example: "ACCEPTED"
+                  bookingStatus:
+                    type: string
+                    example: "ASSIGNED"
+
+  /api/driver-requests/{requestId}/reject:
+    post:
+      tags:
+        - Driver Requests
+      summary: BOOK-06 – Tài xế từ chối chuyến
+      description: |
+        Ghi nhận việc tài xế chủ động từ chối chuyến đi.
+        
+        **Mapping yêu cầu:**
+        - FR08 – Xử lý tài xế từ chối/không phản hồi
+        - TC08 – Tài xế từ chối chuyến
+        
+        **Business Rules:**
+        - BRL05: Khi tài xế từ chối, hệ thống phải tìm tài xế khác.
+        - BRL06: Khách hàng không cần tạo lại booking.
+      operationId: rejectDriverRequest
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "req_00112233"
+      responses:
+        '200':
+          description: Ghi nhận từ chối chuyến thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - requestId
+                  - status
+                properties:
+                  requestId:
+                    type: string
+                    example: "req_00112233"
+                  status:
+                    type: string
+                    example: "REJECTED"
+
+  /api/driver-requests/{requestId}/timeout:
+    post:
+      tags:
+        - Driver Requests
+      summary: BOOK-07 – Xử lý tài xế không phản hồi
+      description: |
+        Hệ thống ghi nhận trường hợp tài xế không phản hồi yêu cầu chuyến xe trong thời gian quy định.
+        
+        **Exceptions:**
+        - EX05: Driver timeout.
+        
+        **Business Rules:**
+        - Khi timeout, hệ thống tiếp tục tự động tìm tài xế khác.
+      operationId: timeoutDriverRequest
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "req_00112233"
+      responses:
+        '200':
+          description: Đã ghi nhận timeout cho yêu cầu.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - requestId
+                  - status
+                properties:
+                  requestId:
+                    type: string
+                    example: "req_00112233"
+                  status:
+                    type: string
+                    example: "TIMEOUT"
+
+  /api/bookings/{bookingId}/driver-search/next:
+    post:
+      tags:
+        - Driver Search & Assignment
+      summary: BOOK-08 – Tìm tài xế tiếp theo
+      description: |
+        Tiếp tục thực hiện tìm kiếm tài xế tiếp theo khi tài xế trước đó từ chối hoặc bị timeout.
+        
+        **Mapping yêu cầu:**
+        - FR09 – Tìm tài xế khác/thông báo không có tài xế
+        - AC04 – Chuyển tiếp yêu cầu khi tài xế từ chối/không phản hồi
+        - AC05 – Thông báo không tìm thấy tài xế
+        - TC09 – Tài xế timeout/không có tài xế
+        
+        **Exceptions:**
+        - EX03: Không có tài xế khả dụng.
+        - EX06: Không có tài xế phù hợp.
+        
+        **Business Rules:**
+        - BRL05: Tài xế từ chối/timeout -> tìm tài xế khác.
+        - BRL07: Nếu không còn tài xế phù hợp, thông báo cho khách hàng (trả về trạng thái NO_DRIVER_AVAILABLE).
+      operationId: searchNextDriver
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "book_987654321"
+      responses:
+        '200':
+          description: Tìm kiếm hoàn tất, trả về tài xế tiếp theo HOẶC thông báo không có tài xế.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/NextDriverFoundResponse'
+                  - $ref: '#/components/schemas/NoDriverAvailableResponse'
+              examples:
+                DriverFound:
+                  summary: Tìm thấy tài xế tiếp theo
+                  value:
+                    bookingId: "book_987654321"
+                    status: "DRIVER_SEARCHING"
+                    driverId: "drv_998877"
+                NoDriverAvailable:
+                  summary: Hết tài xế khả dụng / phù hợp (EX03 / EX06)
+                  value:
+                    bookingId: "book_987654321"
+                    status: "NO_DRIVER_AVAILABLE"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Dùng cho Customer và Driver để gọi API
+    InternalApiKey:
+      type: apiKey
+      in: header
+      name: X-Internal-API-Key
+      description: API Key dùng cho giao tiếp giữa các dịch vụ nội bộ hệ thống
+
+  responses:
+    UnauthorizedError:
+      description: Người dùng chưa đăng nhập hoặc Token không hợp lệ.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid authorization token"
+
+  schemas:
+    Location:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          description: Vĩ độ
+          example: 10.776889
+        longitude:
+          type: number
+          format: double
+          description: Kinh độ
+          example: 106.700806
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - pickupLocation
+        - dropoffLocation
+        - vehicleType
+      properties:
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        dropoffLocation:
+          $ref: '#/components/schemas/Location'
+        vehicleType:
+          type: string
+          description: Loại xe yêu cầu (ví dụ CAR_4, CAR_7, BIKE)
+          example: "CAR_4"
+
+    BookingDetail:
+      type: object
+      required:
+        - bookingId
+        - customerId
+        - pickupLocation
+        - dropoffLocation
+        - vehicleType
+        - status
+      properties:
+        bookingId:
+          type: string
+          example: "book_987654321"
+        customerId:
+          type: string
+          example: "usr_cust_112233"
+        driverId:
+          type: string
+          nullable: true
+          description: ID của tài xế (null nếu chưa có tài xế)
+          example: "drv_45678"
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        dropoffLocation:
+          $ref: '#/components/schemas/Location'
+        vehicleType:
+          type: string
+          example: "CAR_4"
+        status:
+          type: string
+          description: Trạng thái hiện tại của chuyến xe
+          enum:
+            - PENDING
+            - DRIVER_SEARCHING
+            - ASSIGNED
+            - IN_PROGRESS
+            - COMPLETED
+            - NO_DRIVER_AVAILABLE
+            - CANCELLED
+          example: "ASSIGNED"
+
+    NextDriverFoundResponse:
+      type: object
+      required:
+        - bookingId
+        - status
+        - driverId
+      properties:
+        bookingId:
+          type: string
+          example: "book_987654321"
+        status:
+          type: string
+          enum: [DRIVER_SEARCHING]
+          example: "DRIVER_SEARCHING"
+        driverId:
+          type: string
+          example: "drv_998877"
+
+    NoDriverAvailableResponse:
+      type: object
+      required:
+        - bookingId
+        - status
+      properties:
+        bookingId:
+          type: string
+          example: "book_987654321"
+        status:
+          type: string
+          enum: [NO_DRIVER_AVAILABLE]
+          example: "NO_DRIVER_AVAILABLE"
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INVALID_BOOKING"
+        message:
+          type: string
+          example: "Pickup, dropoff and vehicle type are required"
