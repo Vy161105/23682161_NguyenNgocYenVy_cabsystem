@@ -1,104 +1,275 @@
-# Payment API Specification
+openapi: 3.0.3
+info:
+  title: Payment API Specification - CAB System
+  description: |
+    API xử lý thanh toán cho chuyến đi trong CAB System:
+    - PAY-01: Tạo yêu cầu thanh toán (Thanh toán tiền mặt hoặc điện tử).
+    - PAY-02: Webhook/Callback để Payment Provider gửi kết quả xử lý thanh toán về hệ thống.
+    
+    Hệ thống hỗ trợ thanh toán CASH và ELECTRONIC. CAB System không lưu trữ thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.
+  version: 1.0.0
 
-## 1. Tổng quan
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+  - url: https://staging-api.cabsystem.com
+    description: Staging Server
 
-API xử lý thanh toán cho chuyến đi.
+tags:
+  - name: Payment
+    description: Các API phục vụ khởi tạo và ghi nhận kết quả thanh toán cho chuyến đi
 
-Hệ thống hỗ trợ:
-- Thanh toán tiền mặt.
-- Thanh toán điện tử thông qua một Payment Provider.
+paths:
+  /api/payments:
+    post:
+      tags:
+        - Payment
+      summary: PAY-01 – Tạo yêu cầu thanh toán
+      description: |
+        Tạo yêu cầu thanh toán cho một chuyến đi đã hoàn thành.
+        
+        **Actor:** Customer
+        
+        **Mapping yêu cầu:**
+        - FR14 – Thanh toán
+        - UC07 – Thanh toán
+        - TC14 – Kiểm tra thanh toán tiền mặt / điện tử
+        
+        **Business Rules:**
+        - BRL09: Chuyến đi phải hoàn thành (`COMPLETED`) trước khi thanh toán.
+        - BRL10: Chỉ sử dụng phương thức thanh toán được hệ thống hỗ trợ (`CASH` hoặc `ELECTRONIC`).
+        - Nếu chọn `ELECTRONIC`, yêu cầu thanh toán sẽ được chuyển tiếp đến Payment Provider.
+        - CAB System không lưu trữ thông tin nhạy cảm của thẻ/tài khoản thanh toán.
+      operationId: createPayment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Yêu cầu thanh toán được tạo thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentCreatedResponse'
+        '400':
+          description: Dữ liệu không hợp lệ hoặc chuyến chưa hoàn thành (BRL09, BRL10).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                tripNotCompleted:
+                  summary: Chuyến đi chưa hoàn thành
+                  value:
+                    code: "TRIP_NOT_COMPLETED"
+                    message: "Payment can only be processed for completed trips."
+                unsupportedMethod:
+                  summary: Phương thức thanh toán không hỗ trợ
+                  value:
+                    code: "UNSUPPORTED_PAYMENT_METHOD"
+                    message: "Payment method must be CASH or ELECTRONIC."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
-CAB System không lưu trữ thông tin nhạy cảm của thẻ hoặc tài khoản thanh toán.
+  /api/payments/{paymentId}/result:
+    post:
+      tags:
+        - Payment
+      summary: PAY-02 – Ghi nhận kết quả thanh toán
+      description: |
+        Endpoint dành cho Payment Provider gửi kết quả xử lý giao dịch điện tử về CAB System.
+        
+        **Actor:** Payment Provider
+        
+        **Mapping yêu cầu:**
+        - FR15 – Ghi nhận kết quả và xử lý lỗi thanh toán
+        - UC07 – Thanh toán
+        - AC08 – Kết quả thanh toán được ghi nhận
+        - TC15 – Thanh toán thất bại hoặc Payment Provider không phản hồi
+        
+        **Business Rules:**
+        - BRL11: Thanh toán điện tử được thực hiện thông qua Payment Provider.
+        - Kết quả giao dịch phải được ghi nhận vào hệ thống.
+        - **Exceptions:**
+          - EX07: Thanh toán điện tử thất bại (`SUCCESS` = false / status = `FAILED`).
+          - EX08: Payment Provider timeout / failure.
+        - Lỗi thanh toán không được làm dừng toàn bộ chức năng đặt xe của hệ thống.
+      operationId: recordPaymentResult
+      security:
+        - ProviderAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          description: Mã định danh của giao dịch thanh toán trong CAB System
+          schema:
+            type: string
+          example: "pay_98765432"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentResultRequest'
+      responses:
+        '200':
+          description: Ghi nhận kết quả thanh toán thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResultResponse'
+        '400':
+          description: Dữ liệu kết quả thanh toán không hợp lệ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INVALID_RESULT_DATA"
+                message: "Status must be SUCCESS or FAILED."
+        '401':
+          description: Xác thực Payment Provider thất bại.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "UNAUTHORIZED_PROVIDER"
+                message: "Invalid provider signature or token."
+        '404':
+          description: Không tìm thấy giao dịch thanh toán.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "PAYMENT_NOT_FOUND"
+                message: "Payment transaction with the specified ID was not found."
+        '504':
+          description: EX08 - Payment Provider timeout / failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "PROVIDER_TIMEOUT"
+                message: "Payment provider failed to respond in time."
 
-### Actor
-- Customer
-- Payment Provider
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access Token dành cho Customer đăng nhập
+    ProviderAuth:
+      type: apiKey
+      in: header
+      name: X-Provider-Signature
+      description: Chữ ký bảo mật hoặc Secret Key do Payment Provider gửi kèm để xác thực tích hợp
 
-### Mapping yêu cầu
-- FR14 – Thanh toán
-- FR15 – Ghi nhận kết quả và xử lý lỗi thanh toán
-- UC07 – Thanh toán
-- AC08 – Kết quả thanh toán được ghi nhận
-- TC14–TC15
+  responses:
+    UnauthorizedError:
+      description: Người dùng chưa đăng nhập hoặc Token không hợp lệ.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid authorization token"
 
----
+  schemas:
+    PaymentMethod:
+      type: string
+      enum: [CASH, ELECTRONIC]
+      description: Phương thức thanh toán được hỗ trợ
+      example: "ELECTRONIC"
 
-## 2. PAY-01 – Tạo yêu cầu thanh toán
+    PaymentStatus:
+      type: string
+      enum: [PENDING, SUCCESS, FAILED]
+      description: Trạng thái của giao dịch thanh toán
+      example: "PENDING"
 
-### Endpoint
+    CreatePaymentRequest:
+      type: object
+      required:
+        - tripId
+        - method
+      properties:
+        tripId:
+          type: string
+          description: Mã chuyến đi cần thanh toán
+          example: "trip_99887766"
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
 
-POST `/api/payments`
+    PaymentCreatedResponse:
+      type: object
+      required:
+        - paymentId
+        - tripId
+        - method
+        - status
+      properties:
+        paymentId:
+          type: string
+          description: Mã yêu cầu thanh toán được khởi tạo
+          example: "pay_98765432"
+        tripId:
+          type: string
+          example: "trip_99887766"
+        method:
+          $ref: '#/components/schemas/PaymentMethod'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+          example: "PENDING"
 
-### Description
+    PaymentResultRequest:
+      type: object
+      required:
+        - status
+        - providerTransactionId
+      properties:
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+          description: Kết quả xử lý giao dịch từ phía Payment Provider
+          example: "SUCCESS"
+        providerTransactionId:
+          type: string
+          description: Mã giao dịch phía Payment Provider cấp
+          example: "tx_provider_8877665544"
 
-Tạo yêu cầu thanh toán cho một chuyến đã hoàn thành.
+    PaymentResultResponse:
+      type: object
+      required:
+        - paymentId
+        - status
+      properties:
+        paymentId:
+          type: string
+          example: "pay_98765432"
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+          example: "SUCCESS"
 
-### Authentication
-
-Bearer Token
-
-### Request Body
-
-{
-  "tripId": "<trip_id>",
-  "method": "<CASH|ELECTRONIC>"
-}
-
-### Success Response – 201 Created
-
-{
-  "paymentId": "<payment_id>",
-  "tripId": "<trip_id>",
-  "method": "<CASH|ELECTRONIC>",
-  "status": "PENDING"
-}
-
-### Business Rules
-
-- BRL09: Chuyến phải hoàn thành trước khi thanh toán.
-- BRL10: Chỉ sử dụng phương thức thanh toán được hệ thống hỗ trợ.
-- Nếu chọn ELECTRONIC, yêu cầu được chuyển đến Payment Provider.
-- CAB System không lưu thông tin nhạy cảm của thẻ/tài khoản.
-
----
-
-## 3. PAY-02 – Ghi nhận kết quả thanh toán
-
-### Endpoint
-
-POST `/api/payments/{paymentId}/result`
-
-### Description
-
-Payment Provider gửi kết quả xử lý thanh toán về CAB System.
-
-### Authentication
-
-Provider authentication / secure integration
-
-### Request Body
-
-{
-  "status": "<SUCCESS|FAILED>",
-  "providerTransactionId": "<provider_transaction_id>"
-}
-
-### Success Response – 200 OK
-
-{
-  "paymentId": "<payment_id>",
-  "status": "<SUCCESS|FAILED>"
-}
-
-### Business Rules
-
-- BRL11: Thanh toán điện tử được thực hiện thông qua Payment Provider.
-- Kết quả giao dịch phải được ghi nhận.
-- EX07: Thanh toán điện tử thất bại.
-- EX08: Payment Provider timeout/failure.
-- Lỗi thanh toán không được làm dừng toàn bộ chức năng đặt xe.
-
-### Test Case
-
-- TC14: Thanh toán tiền mặt/điện tử.
-- TC15: Thanh toán thất bại hoặc Payment Provider không phản hồi.
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "PAYMENT_FAILED"
+        message:
+          type: string
+          example: "Electronic payment transaction failed."
