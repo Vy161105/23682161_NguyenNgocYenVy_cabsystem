@@ -1,70 +1,96 @@
-# Authentication API Specification
+openapi: 3.0.3
+info:
+  title: Authentication API Specification - CAB System
+  description: API phục vụ xác thực người dùng trong CAB System.
+  version: 1.0.0
 
-## 1. Tổng quan
+tags:
+  - name: Authentication
+    description: Các API liên quan đến xác thực tài khoản (Customer, Driver, Staff)
 
-API phục vụ xác thực người dùng trong CAB System.
-
-### Actor
-- Customer
-- Driver
-- Staff
-
-### Authentication
-- Không yêu cầu authentication khi đăng nhập.
-
-### Mapping yêu cầu
-- FR01 – Đăng nhập/xác thực người dùng
-- UC01 – Quản lý tài khoản
-- AC01 – Người dùng đăng nhập thành công
-- TC01 – Kiểm tra xác thực
-
----
-
-## 2. AUTH-01 – Đăng nhập
-
-### Endpoint
-
-POST `/api/auth/login`
-
-### Description
-
-Cho phép Customer, Driver hoặc Staff đăng nhập vào hệ thống bằng thông tin tài khoản.
-
-### Request Headers
-
-Content-Type: application/json
-
-### Request Body
-
-{
-  "phone": "<phone>",
-  "password": "<password>"
-}
-
-### Success Response – 200 OK
-
-{
-  "token": "<access_token>",
-  "userId": "<user_id>",
-  "role": "<CUSTOMER|DRIVER|STAFF>"
-}
-
-### Error Response – 401 Unauthorized
-
-{
-  "code": "INVALID_CREDENTIALS",
-  "message": "Invalid phone or password"
-}
-
-### Business Rules
-
-- BRL01: Người dùng phải xác thực trước khi sử dụng các chức năng được bảo vệ.
-- Thông tin đăng nhập không hợp lệ phải bị từ chối.
-
-### Exceptions
-
-- EX01: Người dùng chưa đăng nhập hoặc thông tin xác thực không hợp lệ.
-
-### Test Case
-
-- TC01: Kiểm tra đăng nhập với thông tin hợp lệ và không hợp lệ.
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: AUTH-01 – Đăng nhập
+      description: |
+        Cho phép Customer, Driver hoặc Staff đăng nhập vào hệ thống bằng thông tin tài khoản.
+        
+        **Mapping yêu cầu:**
+        - FR01 – Đăng nhập/xác thực người dùng
+        - UC01 – Quản lý tài khoản
+        - AC01 – Người dùng đăng nhập thành công
+        - TC01 – Kiểm tra xác thực
+        
+        **Business Rules:**
+        - BRL01: Người dùng phải xác thực trước khi sử dụng các chức năng được bảo vệ.
+        - Thông tin đăng nhập không hợp lệ phải bị từ chối.
+        
+        **Exceptions:**
+        - EX01: Người dùng chưa đăng nhập hoặc thông tin xác thực không hợp lệ.
+      operationId: loginUser
+      security: [] # Không yêu cầu authentication khi đăng nhập
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+                - password
+              properties:
+                phone:
+                  type: string
+                  description: Số điện thoại đăng nhập
+                  example: "0901234567"
+                password:
+                  type: string
+                  format: password
+                  description: Mật khẩu người dùng
+                  example: "Password123!"
+      responses:
+        '200':
+          description: AC01 – Người dùng đăng nhập thành công (OK)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                  - userId
+                  - role
+                properties:
+                  token:
+                    type: string
+                    description: Access token dùng cho các request tiếp theo
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  userId:
+                    type: string
+                    description: ID định danh của người dùng
+                    example: "usr_12345"
+                  role:
+                    type: string
+                    description: Vai trò người dùng trong hệ thống
+                    enum:
+                      - CUSTOMER
+                      - DRIVER
+                      - STAFF
+                    example: "CUSTOMER"
+        '401':
+          description: EX01 / TC01 - Thông tin xác thực không hợp lệ (Unauthorized)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - message
+                properties:
+                  code:
+                    type: string
+                    example: "INVALID_CREDENTIALS"
+                  message:
+                    type: string
+                    example: "Invalid phone or password"
