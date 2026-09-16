@@ -1,265 +1,475 @@
-# Operations and Reporting API Specification
-
-## 1. Tổng quan
-
-API phục vụ hoạt động vận hành và báo cáo của CAB System, bao gồm:
-- Quản lý Customer.
-- Quản lý Driver.
-- Quản lý Vehicle.
-- Quản lý Trip.
-- Theo dõi các chuyến đang diễn ra.
-- Xem báo cáo vận hành cơ bản.
-
-### Actor
-
-- Staff
-
-### Mapping yêu cầu
-
-- FR18 – Quản lý khách hàng, tài xế, phương tiện, chuyến
-- FR19 – Giám sát chuyến đang diễn ra
-- FR20 – Báo cáo
-- UC09 – Quản lý vận hành
-- UC10 – Báo cáo
-- AC10 – Staff quản lý và giám sát
-- TC18–TC20
-
----
-
-# PART A – OPERATIONS MANAGEMENT API
-
-## 2. OPS-01 – Quản lý khách hàng
-
-### Endpoint
-
-GET `/api/operations/customers`
-
-### Description
-
-Cho phép Staff xem danh sách khách hàng để phục vụ công tác quản lý vận hành.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "data": [
-    {
-      "customerId": "<customer_id>",
-      "fullName": "<full_name>",
-      "phone": "<phone>",
-      "email": "<email>"
-    }
-  ]
-}
-
-### Business Rules
-
-- Chỉ Staff được phân quyền mới được truy cập.
-- BRL13: Chỉ người dùng được phân quyền mới được quản lý hoặc xem dữ liệu vận hành.
-
----
-
-## 3. OPS-02 – Quản lý tài xế
-
-### Endpoint
-
-GET `/api/operations/drivers`
-
-### Description
-
-Cho phép Staff xem danh sách và thông tin tài xế phục vụ quản lý vận hành.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "data": [
-    {
-      "driverId": "<driver_id>",
-      "fullName": "<full_name>",
-      "status": "<status>",
-      "vehicleId": "<vehicle_id>"
-    }
-  ]
-}
-
-### Business Rules
-
-- Chỉ Staff được phân quyền mới được truy cập.
-
----
-
-## 4. OPS-03 – Quản lý phương tiện
-
-### Endpoint
-
-GET `/api/operations/vehicles`
-
-### Description
-
-Cho phép Staff xem danh sách và thông tin phương tiện.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "data": [
-    {
-      "vehicleId": "<vehicle_id>",
-      "vehicleType": "<vehicle_type>",
-      "licensePlate": "<license_plate>",
-      "driverId": "<driver_id>"
-    }
-  ]
-}
-
-### Business Rules
-
-- Chỉ Staff được phân quyền mới được truy cập.
-
----
-
-## 5. OPS-04 – Quản lý chuyến
-
-### Endpoint
-
-GET `/api/operations/trips`
-
-### Description
-
-Cho phép Staff xem danh sách chuyến để phục vụ quản lý vận hành.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "data": [
-    {
-      "tripId": "<trip_id>",
-      "bookingId": "<booking_id>",
-      "driverId": "<driver_id>",
-      "status": "<status>"
-    }
-  ]
-}
-
-### Business Rules
-
-- Chỉ Staff được phân quyền mới được truy cập.
-- Thông tin chuyến phải phản ánh trạng thái hiện tại của chuyến.
-
----
-
-## 6. OPS-05 – Theo dõi chuyến đang diễn ra
-
-### Endpoint
-
-GET `/api/operations/trips/ongoing`
-
-### Description
-
-Cho phép Staff theo dõi các chuyến đang diễn ra để giám sát tình trạng vận hành.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "data": [
-    {
-      "tripId": "<trip_id>",
-      "driverId": "<driver_id>",
-      "status": "<status>",
-      "location": {
-        "latitude": "<latitude>",
-        "longitude": "<longitude>"
-      }
-    }
-  ]
-}
-
-### Business Rules
-
-- Chỉ Staff được phân quyền mới được truy cập.
-- Dữ liệu phải phục vụ việc giám sát các chuyến đang diễn ra.
-
-### Mapping
-
-- FR19 – Giám sát chuyến đang diễn ra
-- UC09 – Quản lý vận hành
-- AC10 – Staff quản lý và giám sát
-- TC19 – Kiểm tra giám sát chuyến
-
----
-
-# PART B – REPORTING API
-
-## 7. REPORT-01 – Báo cáo vận hành
-
-### Endpoint
-
-GET `/api/reports/operations?from={from}&to={to}`
-
-### Description
-
-Cho phép Staff xem các chỉ số báo cáo vận hành trong một khoảng thời gian.
-
-### Authentication
-
-Bearer Token
-
-### Query Parameters
-
-- from: Thời điểm bắt đầu.
-- to: Thời điểm kết thúc.
-
-### Success Response – 200 OK
-
-{
-  "from": "<from>",
-  "to": "<to>",
-  "totalTrips": "<total_trips>",
-  "totalRevenue": "<total_revenue>",
-  "completionRate": "<completion_rate>",
-  "cancellationRate": "<cancellation_rate>",
-  "driverEfficiency": "<driver_efficiency>"
-}
-
-### Report Metrics
-
-- Tổng số chuyến.
-- Tổng doanh thu.
-- Tỷ lệ hoàn thành.
-- Tỷ lệ hủy.
-- Hiệu quả tài xế.
-
-### Business Rules
-
-- BRL13: Chỉ người dùng được phân quyền mới được xem báo cáo.
-- Báo cáo phải được giới hạn theo khoảng thời gian được yêu cầu.
-
-### Exceptions
-
-- EX09: Staff không có quyền truy cập.
-- EX10: Khoảng thời gian báo cáo không hợp lệ.
-
-### Mapping
-
-- FR20 – Báo cáo
-- UC10 – Báo cáo
-- AC10 – Quản lý và báo cáo vận hành
-- TC20 – Kiểm tra báo cáo
+openapi: 3.0.3
+info:
+  title: Operations and Reporting API Specification - CAB System
+  description: |
+    API phục vụ hoạt động vận hành và báo cáo dành riêng cho Staff trong CAB System:
+    - Part A - Operations Management API: Quản lý danh sách Customer, Driver, Vehicle, Trip và theo dõi chuyến đang diễn ra.
+    - Part B - Reporting API: Xem báo cáo vận hành theo khoảng thời gian chỉ định.
+  version: 1.0.0
+
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+  - url: https://staging-api.cabsystem.com
+    description: Staging Server
+
+tags:
+  - name: Operations Management
+    description: Các API quản lý danh sách tài nguyên và giám sát vận hành (Staff)
+  - name: Operations Reporting
+    description: Các API tổng hợp báo cáo chỉ số vận hành (Staff)
+
+paths:
+  /api/operations/customers:
+    get:
+      tags:
+        - Operations Management
+      summary: OPS-01 – Quản lý khách hàng
+      description: |
+        Cho phép Staff xem danh sách khách hàng phục vụ công tác quản lý vận hành.
+        
+        **Actor:** Staff
+        
+        **Mapping yêu cầu:**
+        - FR18 – Quản lý khách hàng, tài xế, phương tiện, chuyến
+        - UC09 – Quản lý vận hành
+        - AC10 – Staff quản lý và giám sát
+        - TC18 – Kiểm tra quản lý tài nguyên
+        
+        **Business Rules:**
+        - BRL13: Chỉ người dùng (Staff) được phân quyền mới được truy cập hoặc xem dữ liệu.
+      operationId: getOperationsCustomers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách khách hàng thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomerItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/operations/drivers:
+    get:
+      tags:
+        - Operations Management
+      summary: OPS-02 – Quản lý tài xế
+      description: |
+        Cho phép Staff xem danh sách và thông tin tài xế phục vụ quản lý vận hành.
+        
+        **Actor:** Staff
+        
+        **Business Rules:**
+        - BRL13: Chỉ Staff được phân quyền mới được truy cập.
+      operationId: getOperationsDrivers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách tài xế thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DriverItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/operations/vehicles:
+    get:
+      tags:
+        - Operations Management
+      summary: OPS-03 – Quản lý phương tiện
+      description: |
+        Cho phép Staff xem danh sách và thông tin phương tiện.
+        
+        **Actor:** Staff
+        
+        **Business Rules:**
+        - BRL13: Chỉ Staff được phân quyền mới được truy cập.
+      operationId: getOperationsVehicles
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách phương tiện thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VehicleItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/operations/trips:
+    get:
+      tags:
+        - Operations Management
+      summary: OPS-04 – Quản lý chuyến
+      description: |
+        Cho phép Staff xem danh sách chuyến đi phục vụ quản lý vận hành.
+        
+        **Actor:** Staff
+        
+        **Business Rules:**
+        - BRL13: Chỉ Staff được phân quyền mới được truy cập.
+        - Thông tin chuyến phải phản ánh trạng thái hiện tại của chuyến.
+      operationId: getOperationsTrips
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách chuyến đi thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TripItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/operations/trips/ongoing:
+    get:
+      tags:
+        - Operations Management
+      summary: OPS-05 – Theo dõi chuyến đang diễn ra
+      description: |
+        Cho phép Staff theo dõi các chuyến đang diễn ra và vị trí tài xế theo thời gian thực để giám sát tình trạng vận hành.
+        
+        **Actor:** Staff
+        
+        **Mapping yêu cầu:**
+        - FR19 – Giám sát chuyến đang diễn ra
+        - UC09 – Quản lý vận hành
+        - AC10 – Staff quản lý và giám sát
+        - TC19 – Kiểm tra giám sát chuyến
+        
+        **Business Rules:**
+        - BRL13: Chỉ Staff được phân quyền mới được truy cập.
+        - Dữ liệu phải phục vụ việc giám sát các chuyến đang diễn ra.
+      operationId: getOngoingTrips
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lấy danh sách chuyến đang diễn ra thành công.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OngoingTripItem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /api/reports/operations:
+    get:
+      tags:
+        - Operations Reporting
+      summary: REPORT-01 – Báo cáo vận hành
+      description: |
+        Cho phép Staff xem các chỉ số báo cáo vận hành trong một khoảng thời gian chỉ định.
+        
+        **Actor:** Staff
+        
+        **Mapping yêu cầu:**
+        - FR20 – Báo cáo
+        - UC10 – Báo cáo
+        - AC10 – Quản lý và báo cáo vận hành
+        - TC20 – Kiểm tra báo cáo
+        
+        **Business Rules:**
+        - BRL13: Chỉ người dùng (Staff) được phân quyền mới được xem báo cáo.
+        - Báo cáo phải được giới hạn theo khoảng thời gian được yêu cầu.
+        
+        **Exceptions:**
+        - EX09: Staff không có quyền truy cập (403 Forbidden).
+        - EX10: Khoảng thời gian báo cáo không hợp lệ (400 Bad Request).
+      operationId: getOperationsReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: true
+          description: Thời điểm bắt đầu (Định dạng ISO 8601 hoặc YYYY-MM-DD)
+          schema:
+            type: string
+          example: "2026-09-01T00:00:00Z"
+        - name: to
+          in: query
+          required: true
+          description: Thời điểm kết thúc (Định dạng ISO 8601 hoặc YYYY-MM-DD)
+          schema:
+            type: string
+          example: "2026-09-16T23:59:59Z"
+      responses:
+        '200':
+          description: Lấy dữ liệu báo cáo vận hành thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationsReportResponse'
+        '400':
+          description: Khoảng thời gian không hợp lệ (EX10 - INVALID_DATE_RANGE).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INVALID_DATE_RANGE"
+                message: "'from' date must be earlier than 'to' date"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Nhập Access Token dành riêng cho tài khoản Staff
+
+  responses:
+    UnauthorizedError:
+      description: Người dùng chưa đăng nhập hoặc Token không hợp lệ.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid authorization token"
+
+    ForbiddenError:
+      description: Tài khoản không có quyền thực hiện thao tác này (EX09 - ACCESS_DENIED).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "ACCESS_DENIED"
+            message: "User does not have permission to access operational data or reports"
+
+  schemas:
+    Location:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          example: 10.776889
+        longitude:
+          type: number
+          format: double
+          example: 106.700806
+
+    CustomerItem:
+      type: object
+      required:
+        - customerId
+        - fullName
+        - phone
+        - email
+      properties:
+        customerId:
+          type: string
+          example: "cus_123456"
+        fullName:
+          type: string
+          example: "Nguyen Van A"
+        phone:
+          type: string
+          example: "0901234567"
+        email:
+          type: string
+          format: email
+          example: "nguyenvana@example.com"
+
+    DriverItem:
+      type: object
+      required:
+        - driverId
+        - fullName
+        - status
+        - vehicleId
+      properties:
+        driverId:
+          type: string
+          example: "drv_45678"
+        fullName:
+          type: string
+          example: "Tran Van B"
+        status:
+          type: string
+          enum: [AVAILABLE, BUSY, OFFLINE]
+          example: "AVAILABLE"
+        vehicleId:
+          type: string
+          example: "veh_998877"
+
+    VehicleItem:
+      type: object
+      required:
+        - vehicleId
+        - vehicleType
+        - licensePlate
+        - driverId
+      properties:
+        vehicleId:
+          type: string
+          example: "veh_998877"
+        vehicleType:
+          type: string
+          example: "CAR_4"
+        licensePlate:
+          type: string
+          example: "51H-123.45"
+        driverId:
+          type: string
+          example: "drv_45678"
+
+    TripItem:
+      type: object
+      required:
+        - tripId
+        - bookingId
+        - driverId
+        - status
+      properties:
+        tripId:
+          type: string
+          example: "trip_99887766"
+        bookingId:
+          type: string
+          example: "book_987654321"
+        driverId:
+          type: string
+          example: "drv_45678"
+        status:
+          type: string
+          enum: [ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED]
+          example: "IN_PROGRESS"
+
+    OngoingTripItem:
+      type: object
+      required:
+        - tripId
+        - driverId
+        - status
+        - location
+      properties:
+        tripId:
+          type: string
+          example: "trip_99887766"
+        driverId:
+          type: string
+          example: "drv_45678"
+        status:
+          type: string
+          enum: [IN_PROGRESS, DRIVER_ARRIVING]
+          example: "IN_PROGRESS"
+        location:
+          $ref: '#/components/schemas/Location'
+
+    OperationsReportResponse:
+      type: object
+      required:
+        - from
+        - to
+        - totalTrips
+        - totalRevenue
+        - completionRate
+        - cancellationRate
+        - driverEfficiency
+      properties:
+        from:
+          type: string
+          example: "2026-09-01T00:00:00Z"
+        to:
+          type: string
+          example: "2026-09-16T23:59:59Z"
+        totalTrips:
+          type: integer
+          description: Tổng số chuyến đi được thực hiện
+          example: 1250
+        totalRevenue:
+          type: number
+          format: double
+          description: Tổng doanh thu (VND)
+          example: 185000000.0
+        completionRate:
+          type: number
+          format: float
+          description: Tỷ lệ hoàn thành chuyến (%)
+          example: 94.5
+        cancellationRate:
+          type: number
+          format: float
+          description: Tỷ lệ hủy chuyến (%)
+          example: 5.5
+        driverEfficiency:
+          type: number
+          format: float
+          description: Hiệu quả tài xế (số chuyến trung bình/tài xế)
+          example: 8.2
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "ACCESS_DENIED"
+        message:
+          type: string
+          example: "User does not have permission to access operational data or reports"
