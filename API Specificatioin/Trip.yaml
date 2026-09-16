@@ -1,182 +1,323 @@
-# Trip API Specification
-
-## 1. Tổng quan
-
-API quản lý quá trình thực hiện chuyến đi, theo dõi chuyến và tính cước.
-
-Fare API được gộp vào Trip API vì tiền cước được xác định dựa trên thông tin chuyến đi.
-
-### Actor
-- Customer
-- Driver
-- Staff
-
-### Mapping yêu cầu
-- FR10 – Cập nhật trạng thái chuyến
-- FR11 – Hoàn thành chuyến
-- FR12 – Theo dõi chuyến
-- FR13 – Tính cước
-- UC04 – Theo dõi chuyến
-- UC05 – Thực hiện chuyến
-- UC06 – Tính cước
-- AC06–AC08
-- TC10–TC13
-
----
-
-## 2. TRIP-01 – Lấy thông tin chuyến
-
-### Endpoint
-
-GET `/api/trips/{tripId}`
-
-### Description
-
-Lấy thông tin và trạng thái hiện tại của chuyến.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "tripId": "<trip_id>",
-  "bookingId": "<booking_id>",
-  "driverId": "<driver_id>",
-  "status": "<ASSIGNED|DRIVER_ARRIVING|IN_PROGRESS|COMPLETED>",
-  "fare": "<fare>"
-}
-
----
-
-## 3. TRIP-02 – Cập nhật trạng thái chuyến
-
-### Endpoint
-
-PATCH `/api/trips/{tripId}/status`
-
-### Description
-
-Tài xế cập nhật trạng thái thực hiện chuyến.
-
-### Authentication
-
-Bearer Token
-
-### Request Body
-
-{
-  "status": "<DRIVER_ARRIVING|IN_PROGRESS>"
-}
-
-### Success Response – 200 OK
-
-{
-  "tripId": "<trip_id>",
-  "status": "<status>"
-}
-
-### Business Rules
-
-- BRL08: Chỉ tài xế được phân công mới được thực hiện và cập nhật chuyến.
-- Trạng thái chuyến phải tuân theo trình tự nghiệp vụ.
-
----
-
-## 4. TRIP-03 – Hoàn thành chuyến
-
-### Endpoint
-
-POST `/api/trips/{tripId}/complete`
-
-### Description
-
-Tài xế xác nhận chuyến đã hoàn thành.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "tripId": "<trip_id>",
-  "status": "COMPLETED"
-}
-
-### Business Rules
-
-- BRL09: Chuyến phải hoàn thành trước khi xác định thanh toán cuối cùng.
-- Sau khi hoàn thành, hệ thống có thể thực hiện tính cước và thanh toán.
-
----
-
-## 5. TRIP-04 – Theo dõi chuyến
-
-### Endpoint
-
-GET `/api/trips/{tripId}/tracking`
-
-### Description
-
-Cho phép khách hàng theo dõi tài xế và trạng thái chuyến.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "tripId": "<trip_id>",
-  "status": "<status>",
-  "driverId": "<driver_id>",
-  "driverLocation": {
-    "latitude": "<latitude>",
-    "longitude": "<longitude>"
-  },
-  "eta": "<estimated_time>"
-}
-
-### Business Rules
-
-- Khách hàng chỉ được theo dõi chuyến của mình.
-- Thông tin vị trí được lấy từ dữ liệu vị trí tài xế.
-
----
-
-## 6. TRIP-05 – Tính cước chuyến
-
-### Endpoint
-
-POST `/api/trips/{tripId}/fare`
-
-### Description
-
-Hệ thống xác định số tiền cần thanh toán cho chuyến đi.
-
-### Authentication
-
-Internal API
-
-### Success Response – 200 OK
-
-{
-  "tripId": "<trip_id>",
-  "fare": "<calculated_fare>",
-  "currency": "VND"
-}
-
-### Business Rules
-
-- FR13: Hệ thống phải xác định tiền cước.
-- Công thức tính cước cụ thể chưa được chốt trong phạm vi yêu cầu hiện tại.
-- Không tự ý cố định mức giá mở cửa, giá/km, giá/phút hoặc phụ phí.
-
-### Test Case
-
-- TC10: Cập nhật trạng thái chuyến.
-- TC11: Hoàn thành chuyến.
-- TC12: Theo dõi chuyến.
-- TC13: Tính cước.
+openapi: 3.0.3
+info:
+  title: Trip API Specification - CAB System
+  description: |
+    API quan ly qua trinh thuc hien chuyen di, theo doi chuyen va tinh cuoc trong CAB System.
+  version: 1.0.0
+
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+
+tags:
+  - name: Trip Management
+    description: Cac API quan ly va cap nhat trang thai chuyen di
+  - name: Trip Tracking
+    description: API theo doi vi tri va ETA
+  - name: Trip Fare
+    description: API tinh cuoc chuyen di
+
+paths:
+  /api/trips/{tripId}:
+    get:
+      tags:
+        - Trip Management
+      summary: TRIP-01 - Lay thong tin chuyen
+      description: Lay thong tin chi tiet va trang thai hien tai cua chuyen di.
+      operationId: getTripById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "trip_99887766"
+      responses:
+        '200':
+          description: Lay thong tin chuyen thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripDetailResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/trips/{tripId}/status:
+    patch:
+      tags:
+        - Trip Management
+      summary: TRIP-02 - Cap nhat trang thai chuyen
+      description: Tai xe cap nhat trang thai thực hien chuyen di (DRIVER_ARRIVING -> IN_PROGRESS).
+      operationId: updateTripStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "trip_99887766"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTripStatusRequest'
+      responses:
+        '200':
+          description: Cap nhat trang thai thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripStatusResponse'
+        '400':
+          description: Trang thai khong hop le.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/trips/{tripId}/complete:
+    post:
+      tags:
+        - Trip Management
+      summary: TRIP-03 - Hoan thanh chuyen
+      description: Tai xe xac nhan chuyen di da hoan thanh sau khi dua khach den diem hen.
+      operationId: completeTrip
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "trip_99887766"
+      responses:
+        '200':
+          description: Xac nhan hoan thanh chuyen thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripStatusResponse'
+        '400':
+          description: "Chuyen chua o trang thai hop le de hoan thanh (vi du: chua o trang thai IN_PROGRESS)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "TRIP_NOT_IN_PROGRESS"
+                message: "Only trips in progress can be completed."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/trips/{tripId}/tracking:
+    get:
+      tags:
+        - Trip Tracking
+      summary: TRIP-04 - Theo doi chuyen
+      description: Cho phep khach hang xem vi tri thoi gian thuc va ETA.
+      operationId: getTripTracking
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "trip_99887766"
+      responses:
+        '200':
+          description: Lay thong tin theo doi thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripTrackingResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/trips/{tripId}/fare:
+    post:
+      tags:
+        - Trip Fare
+      summary: TRIP-05 - Tinh cuoc chuyen
+      description: He thong xac dinh so tien cuoc can thanh toan cho chuyen di.
+      operationId: calculateTripFare
+      security:
+        - InternalApiKeyAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "trip_99887766"
+      responses:
+        '200':
+          description: Tinh cuoc thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripFareResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    InternalApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-API-Key
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized Access
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid token"
+
+    NotFoundError:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "NOT_FOUND"
+            message: "Trip not found"
+
+  schemas:
+    TripDetailResponse:
+      type: object
+      required:
+        - tripId
+        - bookingId
+        - driverId
+        - status
+        - fare
+      properties:
+        tripId:
+          type: string
+          example: "trip_99887766"
+        bookingId:
+          type: string
+          example: "book_12345678"
+        driverId:
+          type: string
+          example: "drv_45678"
+        status:
+          type: string
+          enum: [ASSIGNED, DRIVER_ARRIVING, IN_PROGRESS, COMPLETED]
+          example: "IN_PROGRESS"
+        fare:
+          type: number
+          example: 85000.0
+
+    UpdateTripStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [DRIVER_ARRIVING, IN_PROGRESS]
+          example: "IN_PROGRESS"
+
+    TripStatusResponse:
+      type: object
+      required:
+        - tripId
+        - status
+      properties:
+        tripId:
+          type: string
+          example: "trip_99887766"
+        status:
+          type: string
+          example: "IN_PROGRESS"
+
+    TripTrackingResponse:
+      type: object
+      required:
+        - tripId
+        - status
+        - driverId
+        - driverLocation
+        - eta
+      properties:
+        tripId:
+          type: string
+          example: "trip_99887766"
+        status:
+          type: string
+          example: "DRIVER_ARRIVING"
+        driverId:
+          type: string
+          example: "drv_45678"
+        driverLocation:
+          type: object
+          properties:
+            latitude:
+              type: number
+              example: 10.776889
+            longitude:
+              type: number
+              example: 106.700806
+        eta:
+          type: string
+          example: "5 mins"
+
+    TripFareResponse:
+      type: object
+      required:
+        - tripId
+        - fare
+        - currency
+      properties:
+        tripId:
+          type: string
+          example: "trip_99887766"
+        fare:
+          type: number
+          example: 85000.0
+        currency:
+          type: string
+          example: "VND"
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INVALID_STATUS"
+        message:
+          type: string
+          example: "Invalid operation"
