@@ -1,115 +1,258 @@
-# Vehicle API Specification
+openapi: 3.0.3
+info:
+  title: Vehicle API Specification - CAB System
+  description: |
+    API quan ly thong tin phuong tien trong CAB System. Cho phep Staff them moi, cap nhat va xem chi tiet thong tin xe.
+  version: 1.0.0
 
-## 1. Tổng quan
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+  - url: https://staging-api.cabsystem.com
+    description: Staging Server
 
-API quản lý thông tin phương tiện trong CAB System.
+tags:
+  - name: Vehicle Management
+    description: Cac API quan ly va truy van thong tin phuong tien (Staff, Driver)
 
-### Actor
-- Driver
-- Staff
+paths:
+  /api/vehicles:
+    post:
+      tags:
+        - Vehicle Management
+      summary: VEH-01 - Them phuong tien
+      description: |
+        Staff them thong tin phuong tien moi vao he thong.
+        
+        **Actor:** Staff
+        
+        **Mapping yeu cau:**
+        - FR18 - Quan ly khach hang, tai xe, phuong tien va chuyen
+        - UC09 - Quan ly van hanh
+        - AC10 - Staff quan ly du lieu van hanh
+        - TC18 - Kiem tra quan ly du lieu van hanh
+        
+        **Business Rules:**
+        - BRL13: Chi Staff duoc phan quyen moi duoc quan ly phuong tien.
+        - Thong tin phuong tien phai hop le va khong trung bien so xe.
+      operationId: createVehicle
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVehicleRequest'
+      responses:
+        '201':
+          description: Them phuong tien thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '400':
+          description: Du lieu phuong tien khong hop le hoac bien so xe da ton tai.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "DUPLICATE_LICENSE_PLATE"
+                message: "License plate already exists in system."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
-### Mapping yêu cầu
-- FR18 – Quản lý khách hàng, tài xế, phương tiện và chuyến
-- UC09 – Quản lý vận hành
-- AC10 – Staff quản lý dữ liệu vận hành
-- TC18 – Kiểm tra quản lý dữ liệu vận hành
+  /api/vehicles/{vehicleId}:
+    put:
+      tags:
+        - Vehicle Management
+      summary: VEH-02 - Cap nhat phuong tien
+      description: |
+        Staff cap nhat thong tin phuong tien da ton tai.
+        
+        **Actor:** Staff
+        
+        **Business Rules:**
+        - Chi Staff duoc phan quyen moi duoc cap nhat.
+        - Thong tin phuong tien phai hop le.
+      operationId: updateVehicle
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          description: Ma dinh danh phuong tien
+          schema:
+            type: string
+          example: "veh_998877"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVehicleRequest'
+      responses:
+        '200':
+          description: Cap nhat phuong tien thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '400':
+          description: Du lieu cap nhat khong hop le.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
----
+    get:
+      tags:
+        - Vehicle Management
+      summary: VEH-03 - Lay thong tin phuong tien
+      description: |
+        Lay chi tiet thong tin phuong tien theo vehicleId.
+        
+        **Actor:** Driver, Staff
+      operationId: getVehicleById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          description: Ma dinh danh phuong tien
+          schema:
+            type: string
+          example: "veh_998877"
+      responses:
+        '200':
+          description: Lay thong tin phuong tien thanh cong.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
-## 2. VEH-01 – Thêm phương tiện
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer Token danh cho Staff hoac Driver
 
-### Endpoint
+  responses:
+    UnauthorizedError:
+      description: Nguoi dung chua dang nhap hoac Token khong hop le.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid authorization token"
 
-POST `/api/vehicles`
+    ForbiddenError:
+      description: Nguoi dung khong co quyen thuc hien thao tac nay.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "ACCESS_DENIED"
+            message: "User does not have permission to manage vehicles."
 
-### Description
+    NotFoundError:
+      description: Khong tim thay phuong tien tương ung.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "VEHICLE_NOT_FOUND"
+            message: "Vehicle with specified ID was not found."
 
-Staff thêm thông tin phương tiện vào hệ thống.
+  schemas:
+    CreateVehicleRequest:
+      type: object
+      required:
+        - vehicleType
+        - licensePlate
+        - driverId
+      properties:
+        vehicleType:
+          type: string
+          description: Loai phuong tien (vi du CAR_4, CAR_7, BIKE)
+          example: "CAR_4"
+        licensePlate:
+          type: string
+          description: Bien so xe
+          example: "51H-123.45"
+        driverId:
+          type: string
+          description: Ma tai xe quan ly phuong tien
+          example: "drv_45678"
 
-### Authentication
+    UpdateVehicleRequest:
+      type: object
+      required:
+        - vehicleType
+        - licensePlate
+        - driverId
+      properties:
+        vehicleType:
+          type: string
+          example: "CAR_4"
+        licensePlate:
+          type: string
+          example: "51H-123.45"
+        driverId:
+          type: string
+          example: "drv_45678"
 
-Bearer Token
+    VehicleResponse:
+      type: object
+      required:
+        - vehicleId
+        - vehicleType
+        - licensePlate
+        - driverId
+      properties:
+        vehicleId:
+          type: string
+          example: "veh_998877"
+        vehicleType:
+          type: string
+          example: "CAR_4"
+        licensePlate:
+          type: string
+          example: "51H-123.45"
+        driverId:
+          type: string
+          example: "drv_45678"
 
-### Request Body
-
-{
-  "vehicleType": "<vehicle_type>",
-  "licensePlate": "<license_plate>",
-  "driverId": "<driver_id>"
-}
-
-### Success Response – 201 Created
-
-{
-  "vehicleId": "<vehicle_id>",
-  "vehicleType": "<vehicle_type>",
-  "licensePlate": "<license_plate>",
-  "driverId": "<driver_id>"
-}
-
----
-
-## 3. VEH-02 – Cập nhật phương tiện
-
-### Endpoint
-
-PUT `/api/vehicles/{vehicleId}`
-
-### Description
-
-Staff cập nhật thông tin phương tiện.
-
-### Authentication
-
-Bearer Token
-
-### Request Body
-
-{
-  "vehicleType": "<vehicle_type>",
-  "licensePlate": "<license_plate>",
-  "driverId": "<driver_id>"
-}
-
-### Success Response – 200 OK
-
-{
-  "vehicleId": "<vehicle_id>",
-  "vehicleType": "<vehicle_type>",
-  "licensePlate": "<license_plate>",
-  "driverId": "<driver_id>"
-}
-
----
-
-## 4. VEH-03 – Lấy thông tin phương tiện
-
-### Endpoint
-
-GET `/api/vehicles/{vehicleId}`
-
-### Description
-
-Lấy thông tin phương tiện.
-
-### Authentication
-
-Bearer Token
-
-### Success Response – 200 OK
-
-{
-  "vehicleId": "<vehicle_id>",
-  "vehicleType": "<vehicle_type>",
-  "licensePlate": "<license_plate>",
-  "driverId": "<driver_id>"
-}
-
-### Business Rules
-
-- Chỉ Staff có quyền mới được quản lý phương tiện.
-- Thông tin phương tiện phải hợp lệ.
-
-### Test Case
-
-- TC18: Kiểm tra quản lý phương tiện.
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INVALID_VEHICLE_DATA"
+        message:
+          type: string
+          example: "Vehicle data provided is invalid."
