@@ -1,109 +1,200 @@
-# Customer API Specification
+openapi: 3.0.3
+info:
+  title: Customer API Specification - CAB System
+  description: |
+    API quản lý thông tin khách hàng trong CAB System.
+  version: 1.0.0
 
-## 1. Tổng quan
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+  - url: https://staging-api.cabsystem.com
+    description: Staging Server
 
-API quản lý thông tin khách hàng trong CAB System.
+tags:
+  - name: Customers
+    description: Các API quản lý thông tin tài khoản khách hàng (Customer & Staff)
 
-### Actor
-- Customer
-- Staff
+paths:
+  /api/customers/{customerId}:
+    get:
+      tags:
+        - Customers
+      summary: CUS-01 – Lấy thông tin khách hàng
+      description: |
+        Lấy thông tin chi tiết của một khách hàng dựa vào customerId.
+        
+        **Mapping yêu cầu:**
+        - UC01 – Quản lý tài khoản
+        - AC01 – Quản lý tài khoản thành công
+        - TC02 – Kiểm tra xem thông tin khách hàng
+        
+        **Business Rules:**
+        - Chỉ khách hàng hợp lệ hoặc Staff có quyền mới được truy cập thông tin.
+      operationId: getCustomerById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: ID định danh của khách hàng cần lấy thông tin
+          schema:
+            type: string
+          example: "cus_123456"
+      responses:
+        '200':
+          description: Lấy thông tin khách hàng thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy thông tin khách hàng (CUSTOMER_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "CUSTOMER_NOT_FOUND"
+                message: "Customer not found"
 
-### Mapping yêu cầu
-- FR02 – Cập nhật thông tin tài khoản
-- UC01 – Quản lý tài khoản
-- AC01 – Quản lý tài khoản thành công
-- TC02 – Kiểm tra cập nhật thông tin khách hàng
+    put:
+      tags:
+        - Customers
+      summary: CUS-02 – Cập nhật thông tin khách hàng
+      description: |
+        Cho phép khách hàng hoặc Staff cập nhật thông tin tài khoản.
+        
+        **Mapping yêu cầu:**
+        - FR02 – Cập nhật thông tin tài khoản
+        - UC01 – Quản lý tài khoản
+        - AC01 – Quản lý tài khoản thành công
+        - TC02 – Kiểm tra cập nhật thông tin khách hàng
+        
+        **Business Rules:**
+        - Chỉ khách hàng hợp lệ hoặc Staff có quyền mới được cập nhật thông tin.
+        - Thông tin cập nhật phải hợp lệ.
+      operationId: updateCustomer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: ID định danh của khách hàng cần cập nhật
+          schema:
+            type: string
+          example: "cus_123456"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      responses:
+        '200':
+          description: Cập nhật thông tin khách hàng thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '400':
+          description: Dữ liệu cập nhật không hợp lệ (INVALID_CUSTOMER_DATA).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INVALID_CUSTOMER_DATA"
+                message: "Invalid customer information"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy khách hàng để cập nhật.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "CUSTOMER_NOT_FOUND"
+                message: "Customer not found"
 
----
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Nhập Access Token thu được từ API Login để xác thực (Customer / Staff)
 
-## 2. CUS-01 – Lấy thông tin khách hàng
+  responses:
+    UnauthorizedError:
+      description: Người dùng chưa đăng nhập hoặc Token không hợp lệ / hết hạn.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid authorization token"
 
-### Endpoint
+  schemas:
+    UpdateCustomerRequest:
+      type: object
+      required:
+        - fullName
+        - phone
+        - email
+      properties:
+        fullName:
+          type: string
+          description: Họ và tên khách hàng
+          example: "Nguyen Van A"
+        phone:
+          type: string
+          description: Số điện thoại liên hệ
+          example: "0901234567"
+        email:
+          type: string
+          format: email
+          description: Địa chỉ email
+          example: "nguyenvana@example.com"
 
-GET `/api/customers/{customerId}`
+    CustomerResponse:
+      type: object
+      required:
+        - customerId
+        - fullName
+        - phone
+        - email
+      properties:
+        customerId:
+          type: string
+          description: ID duy nhất của khách hàng
+          example: "cus_123456"
+        fullName:
+          type: string
+          example: "Nguyen Van A"
+        phone:
+          type: string
+          example: "0901234567"
+        email:
+          type: string
+          format: email
+          example: "nguyenvana@example.com"
 
-### Description
-
-Lấy thông tin của một khách hàng.
-
-### Authentication
-
-Bearer Token
-
-### Request Headers
-
-Authorization: Bearer <access_token>
-
-### Path Parameter
-
-- customerId: ID của khách hàng cần lấy thông tin.
-
-### Success Response – 200 OK
-
-{
-  "customerId": "<customer_id>",
-  "fullName": "<full_name>",
-  "phone": "<phone>",
-  "email": "<email>"
-}
-
-### Error Response – 404 Not Found
-
-{
-  "code": "CUSTOMER_NOT_FOUND",
-  "message": "Customer not found"
-}
-
----
-
-## 3. CUS-02 – Cập nhật thông tin khách hàng
-
-### Endpoint
-
-PUT `/api/customers/{customerId}`
-
-### Description
-
-Cho phép khách hàng cập nhật thông tin tài khoản.
-
-### Authentication
-
-Bearer Token
-
-### Request Headers
-
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-### Request Body
-
-{
-  "fullName": "<full_name>",
-  "phone": "<phone>",
-  "email": "<email>"
-}
-
-### Success Response – 200 OK
-
-{
-  "customerId": "<customer_id>",
-  "fullName": "<full_name>",
-  "phone": "<phone>",
-  "email": "<email>"
-}
-
-### Error Response – 400 Bad Request
-
-{
-  "code": "INVALID_CUSTOMER_DATA",
-  "message": "Invalid customer information"
-}
-
-### Business Rules
-
-- Chỉ khách hàng hợp lệ hoặc Staff có quyền mới được truy cập thông tin.
-- Thông tin cập nhật phải hợp lệ.
-
-### Test Case
-
-- TC02: Kiểm tra xem và cập nhật thông tin khách hàng.
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "INVALID_CUSTOMER_DATA"
+        message:
+          type: string
+          example: "Invalid customer information"
