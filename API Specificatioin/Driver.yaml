@@ -1,135 +1,326 @@
-# Driver API Specification
+openapi: 3.0.3
+info:
+  title: Driver API Specification - CAB System
+  description: |
+    API quản lý thông tin, trạng thái và vị trí của tài xế trong CAB System.
+  version: 1.0.0
 
-## 1. Tổng quan
+servers:
+  - url: https://api.cabsystem.com
+    description: Production Server
+  - url: https://staging-api.cabsystem.com
+    description: Staging Server
 
-API quản lý thông tin, trạng thái và vị trí của tài xế.
+tags:
+  - name: Drivers
+    description: Các API quản lý tài khoản, trạng thái hoạt động và tọa độ vị trí của tài xế
 
-### Actor
-- Customer
-- Driver
-- Staff
+paths:
+  /api/drivers/{driverId}:
+    get:
+      tags:
+        - Drivers
+      summary: DRV-01 – Lấy thông tin tài xế
+      description: |
+        Lấy thông tin chi tiết của tài xế phục vụ việc theo dõi chuyến hoặc quản lý tài xế.
+        
+        **Mapping yêu cầu:**
+        - FR12 – Theo dõi tài xế/chuyến
+        - FR18 – Quản lý tài xế
+        - FR19 – Giám sát chuyến đang diễn ra
+        - UC04 – Theo dõi chuyến
+        - UC09 – Quản lý vận hành
+        - TC12 – Kiểm tra theo dõi tài xế/chuyến
+        - TC18 – Kiểm tra quản lý tài xế
+      operationId: getDriverById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          description: ID duy nhất của tài xế
+          schema:
+            type: string
+          example: "drv_45678"
+      responses:
+        '200':
+          description: Lấy thông tin tài xế thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverDetailResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy tài xế với ID tương ứng.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "DRIVER_NOT_FOUND"
+                message: "Driver not found"
 
-### Mapping yêu cầu
-- FR05 – Tìm tài xế
-- FR06 – Lọc/ưu tiên tài xế phù hợp
-- FR10 – Cập nhật trạng thái chuyến
-- FR12 – Theo dõi tài xế/chuyến
-- FR18 – Quản lý tài xế
-- FR19 – Giám sát chuyến đang diễn ra
-- UC03 – Tìm và phân công tài xế
-- UC04 – Theo dõi chuyến
-- UC05 – Thực hiện chuyến
-- UC09 – Quản lý vận hành
+  /api/drivers/{driverId}/status:
+    patch:
+      tags:
+        - Drivers
+      summary: DRV-02 – Cập nhật trạng thái tài xế
+      description: |
+        Cho phép tài xế cập nhật trạng thái hoạt động (AVAILABLE, BUSY, OFFLINE).
+        
+        **Mapping yêu cầu:**
+        - FR05 – Tìm tài xế
+        - FR06 – Lọc/ưu tiên tài xế phù hợp
+        - FR10 – Cập nhật trạng thái chuyến
+        - UC03 – Tìm và phân công tài xế
+        - UC05 – Thực hiện chuyến
+        - TC05 – Kiểm tra tìm tài xế dựa trên trạng thái và vị trí
+        
+        **Business Rules:**
+        - Chỉ tài xế hợp lệ mới được cập nhật trạng thái của chính mình.
+        - Driver ở trạng thái AVAILABLE mới được xem xét cho việc phân công chuyến.
+      operationId: updateDriverStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          description: ID của tài xế cần cập nhật trạng thái
+          schema:
+            type: string
+          example: "drv_45678"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDriverStatusRequest'
+      responses:
+        '200':
+          description: Cập nhật trạng thái tài xế thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverStatusResponse'
+        '400':
+          description: Trạng thái truyền vào không hợp lệ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INVALID_STATUS"
+                message: "Status must be AVAILABLE, BUSY, or OFFLINE"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy tài xế để cập nhật.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "DRIVER_NOT_FOUND"
+                message: "Driver not found"
 
----
+  /api/drivers/{driverId}/location:
+    patch:
+      tags:
+        - Drivers
+      summary: DRV-03 – Cập nhật vị trí tài xế
+      description: |
+        Cập nhật vị trí hiện tại (kinh độ, vĩ độ) của tài xế để phục vụ tìm kiếm, phân công và theo dõi chuyến theo thời gian thực.
+        
+        **Mapping yêu cầu:**
+        - FR05 – Tìm tài xế
+        - FR06 – Lọc/ưu tiên tài xế phù hợp
+        - FR12 – Theo dõi tài xế/chuyến
+        - UC03 – Tìm và phân công tài xế
+        - UC04 – Theo dõi chuyến
+        - TC05 – Kiểm tra tìm tài xế dựa trên trạng thái và vị trí
+        - TC12 – Kiểm tra theo dõi tài xế/chuyến
+        
+        **Business Rules:**
+        - Vị trí tài xế được sử dụng để xác định tài xế phù hợp với điểm đón.
+        - Chỉ tài xế hợp lệ mới được cập nhật vị trí.
+      operationId: updateDriverLocation
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          description: ID của tài xế cần cập nhật vị trí
+          schema:
+            type: string
+          example: "drv_45678"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDriverLocationRequest'
+      responses:
+        '200':
+          description: Cập nhật vị trí tài xế thành công.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverLocationResponse'
+        '400':
+          description: Tọa độ vĩ độ hoặc kinh độ không hợp lệ.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INVALID_LOCATION"
+                message: "Latitude and longitude are required"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Không tìm thấy tài xế để cập nhật.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "DRIVER_NOT_FOUND"
+                message: "Driver not found"
 
-## 2. DRV-01 – Lấy thông tin tài xế
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Nhập Access Token để xác thực (Driver, Customer, Staff)
 
-### Endpoint
+  responses:
+    UnauthorizedError:
+      description: Người dùng chưa đăng nhập hoặc Token không hợp lệ.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "Missing or invalid authorization token"
 
-GET `/api/drivers/{driverId}`
+  schemas:
+    DriverDetailResponse:
+      type: object
+      required:
+        - driverId
+        - fullName
+        - phone
+        - status
+        - vehicleId
+      properties:
+        driverId:
+          type: string
+          description: ID duy nhất của tài xế
+          example: "drv_45678"
+        fullName:
+          type: string
+          description: Họ và tên tài xế
+          example: "Tran Van B"
+        phone:
+          type: string
+          description: Số điện thoại liên hệ
+          example: "0987654321"
+        status:
+          type: string
+          description: Trạng thái hiện tại của tài xế
+          enum:
+            - AVAILABLE
+            - BUSY
+            - OFFLINE
+          example: "AVAILABLE"
+        vehicleId:
+          type: string
+          description: ID của phương tiện liên kết với tài xế
+          example: "veh_998877"
 
-### Description
+    UpdateDriverStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Trạng thái hoạt động mới
+          enum:
+            - AVAILABLE
+            - BUSY
+            - OFFLINE
+          example: "AVAILABLE"
 
-Lấy thông tin tài xế phục vụ việc theo dõi chuyến hoặc quản lý tài xế.
+    DriverStatusResponse:
+      type: object
+      required:
+        - driverId
+        - status
+      properties:
+        driverId:
+          type: string
+          example: "drv_45678"
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - BUSY
+            - OFFLINE
+          example: "AVAILABLE"
 
-### Authentication
+    UpdateDriverLocationRequest:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+          description: Vĩ độ hiện tại của tài xế
+          example: 10.776889
+        longitude:
+          type: number
+          format: double
+          description: Kinh độ hiện tại của tài xế
+          example: 106.700806
 
-Bearer Token
+    DriverLocationResponse:
+      type: object
+      required:
+        - driverId
+        - latitude
+        - longitude
+      properties:
+        driverId:
+          type: string
+          example: "drv_45678"
+        latitude:
+          type: number
+          format: double
+          example: 10.776889
+        longitude:
+          type: number
+          format: double
+          example: 106.700806
 
-### Request Headers
-
-Authorization: Bearer <access_token>
-
-### Success Response – 200 OK
-
-{
-  "driverId": "<driver_id>",
-  "fullName": "<full_name>",
-  "phone": "<phone>",
-  "status": "<AVAILABLE|BUSY|OFFLINE>",
-  "vehicleId": "<vehicle_id>"
-}
-
-### Error Response – 404 Not Found
-
-{
-  "code": "DRIVER_NOT_FOUND",
-  "message": "Driver not found"
-}
-
----
-
-## 3. DRV-02 – Cập nhật trạng thái tài xế
-
-### Endpoint
-
-PATCH `/api/drivers/{driverId}/status`
-
-### Description
-
-Cho phép tài xế cập nhật trạng thái hoạt động.
-
-### Authentication
-
-Bearer Token
-
-### Request Body
-
-{
-  "status": "<AVAILABLE|BUSY|OFFLINE>"
-}
-
-### Success Response – 200 OK
-
-{
-  "driverId": "<driver_id>",
-  "status": "<status>"
-}
-
-### Business Rules
-
-- Chỉ tài xế hợp lệ mới được cập nhật trạng thái của chính mình.
-- Driver ở trạng thái AVAILABLE mới được xem xét cho việc phân công chuyến.
-
----
-
-## 4. DRV-03 – Cập nhật vị trí tài xế
-
-### Endpoint
-
-PATCH `/api/drivers/{driverId}/location`
-
-### Description
-
-Cập nhật vị trí hiện tại của tài xế để phục vụ tìm kiếm, phân công và theo dõi chuyến.
-
-### Authentication
-
-Bearer Token
-
-### Request Body
-
-{
-  "latitude": "<latitude>",
-  "longitude": "<longitude>"
-}
-
-### Success Response – 200 OK
-
-{
-  "driverId": "<driver_id>",
-  "latitude": "<latitude>",
-  "longitude": "<longitude>"
-}
-
-### Business Rules
-
-- Vị trí tài xế được sử dụng để xác định tài xế phù hợp với điểm đón.
-- Chỉ tài xế hợp lệ mới được cập nhật vị trí.
-
-### Test Case
-
-- TC05: Kiểm tra tìm tài xế dựa trên trạng thái và vị trí.
-- TC12: Kiểm tra theo dõi tài xế/chuyến.
-- TC18: Kiểm tra quản lý tài xế.
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "DRIVER_NOT_FOUND"
+        message:
+          type: string
+          example: "Driver not found"
